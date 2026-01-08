@@ -8,8 +8,9 @@ use ndarray_rand::rand_distr::num_traits::ToBytes;
 use memmap2::Mmap;
 use std::fs::File;
 use std::time::Instant;
+use memmap2::*;
 
-enum EffectType {
+pub enum EffectType {
     ComponentWiseMultiplicative,
     ComponentWiseAddition,
     Convolution
@@ -18,7 +19,7 @@ enum EffectType {
 pub struct SpatialSpectralEffect {
     label: String,
     active: bool,
-    effect_types: EffectType,
+    effect_type: EffectType,
     number_of_pixels: usize,
     sample_frequencies_in_nm: Vec<usize>,
     data:Mmap,
@@ -27,14 +28,14 @@ pub struct SpatialSpectralEffect {
 pub struct SpectralEffect {
     label: String,
     active: bool,
-    effect_types: EffectType,
+    effect_type: EffectType,
     sample_frequencies_in_nm: Vec<usize>,
     data:Array1<f64>,
 }
 pub struct SpatialEffect {
     label: String,
     active: bool,
-    effect_types: EffectType,
+    effect_type: EffectType,
     number_of_pixels: usize,
     data:Array2<f64>,
 }
@@ -43,79 +44,51 @@ pub trait DataCube {
     fn name(&self) -> String;
 }
 impl SpatialSpectralEffect {
-    pub fn initialize(label:String,active:bool,effect_type: EffectType,sample_frequencies_in_nm: Vec<usize>,file: File) -> SpatialSpectralEffect{
-
+    pub fn initialize(label:String,active:bool,effect_type: EffectType,number_of_pixels:usize,sample_frequencies_in_nm: Vec<usize>,file_name: &str) -> SpatialSpectralEffect{
+        let file = File::open(file_name).unwrap();
         // Create a memory map for the file
         let now = Instant::now();
-        let mmap = unsafe { Mmap::map(&file)? };
-        println!("Created a memory map in {} ns", now.elapsed().as_nanos());
+        let mmap = unsafe { Mmap::map(&file).unwrap() };
+        println!("Created a memory map in {} ms", now.elapsed().as_millis());
 
-        SpatialSpectralEffect{label,active,effect_types, number_of_pixels,sample_frequencies_in_nm,data:mmap}
+        SpatialSpectralEffect{label,active,effect_type, number_of_pixels,sample_frequencies_in_nm,data:mmap}
 
     }
 
+    pub fn apply(&self, data_cube:Array3<f64>){
 
-    pub fn hallucinate(number_of_pixels: usize,sample_frequencies_in_nm: Vec<usize>){
-
-
-        //We initialize an array the size of the quantum efficiency data cube
-        let now = Instant::now();
-        let hallucinated_quantum_efficiency = Array3::random(
-            (number_of_pixels, number_of_pixels, sample_frequencies_in_nm.len()),
-            Uniform::new(0., 1.)).to_owned();
-        println!("Hallucinated Quantum Efficiency in {:?} milliseconds", now.elapsed().as_millis());
-
-
-        //Converting the quantum efficiency data cube to bytes
-        let now = Instant::now();
-        let flat_qe= hallucinated_quantum_efficiency.iter().map(|x: &f64| x.to_le_bytes()).flatten().collect::<Vec<u8>>();
-        println!("Converted hallucinated data to bytes in {} milliseconds", now.elapsed().as_millis());
-
-        let mut f = File::create("hallucinated_data/qem").unwrap();
-        f.write_all(flat_qe.as_slice()).unwrap();
-
-        /*
+        let resultant_data_cube = match self.effect_type {
+            EffectType::ComponentWiseAddition => {
+                let now = Instant::now();
+                //println!("data_cube is {:?}", data_cube);
+                //let flat_pack_data_cube = data_cube.iter().map(|x: &f64| x).collect::<Vec<&f64>>();
+                //println!("flat_pack is {:?}", flat_pack_data_cube);
+                let mut effect_bytes = self.data[..].chunks(8);
+                let flat_packed_added_data = data_cube.iter().map(|x: &f64|{
+                    let effect_bytes: &[u8;8] =effect_bytes.next().unwrap().try_into().expect("REASON");
+                    let effect_float:f64 = f64::from_le_bytes(*effect_bytes);
+                    println!("x is {:?} and the bytes complie to {:?}, the addition is {:?}", x,effect_float,x+effect_float);
+                    x+effect_float
+                }
+                ).collect::<Vec<f64>>();
+                let added_data= Array::from_shape_vec(data_cube.shape(), flat_packed_added_data);
 
 
 
+                println!(" Preformed component-wise addition in {} ms", now.elapsed().as_millis());
+                println!(" the resulting added data cube is{:?}", added_data)
 
-        println!("unpacking");
-        let now = Instant::now();
-        let tented_qe: Vec<f64> = flat_qe.into_iter().map(|x: [u8;8]| f64::from_le_bytes(x)).collect();
-        let qe= Array::from_shape_vec((4000, 4000,4), tented_qe.clone());
-        println!("{}", now.elapsed().as_millis());
-
-
-        let now = Instant::now();
-
-         */
-
-        /*
-        let file = File::open("hallucinated_data/qe")?;
-
-        // Create a memory map for the file
-        let mmap = unsafe { Mmap::map(&file)? };
-
-        println!("{}", now.elapsed().as_nanos());
-
-        println!("reading from to a memory map");
-        let now = Instant::now();
-
-        // Access file content as a byte slice
-        let content = &mmap[..];
-
-        println!("{}", now.elapsed().as_nanos());
-
-        // Print it to the console
-        println!("File content: {}", String::from_utf8_lossy(content));
-
-        Ok(())
-
-         */
-
-
-
+            },
+            EffectType::ComponentWiseMultiplicative => {},
+            EffectType::Convolution =>{}
+        };
     }
+
+    fn reconstitute(&self) {
+        let expected_array_size = self.number_of_pixels*self.number_of_pixels*self.sample_frequencies_in_nm.len();
+        println!("File content: {}", String::from_utf8_lossy(&self.data[..]));
+    }
+
 
 
 
