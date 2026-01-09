@@ -12,19 +12,28 @@ use crate::hallucinations::hallucinate_spatial_spectral;
 
 
 fn main() {
+    let num_pixles:usize = 3;
+    let frequencies = vec![1];
 
     //let a = Array::<f64, _>::zeros((3, 2, 4).f());
-    let filename = "/Users/mayabasu/Desktop/data/smallfile.txt";
+    let input = "/Users/mayabasu/Desktop/data/input.txt";
+    let result = "/Users/mayabasu/Desktop/data/output.txt";
 
-    //let file = hallucinate_spatial_spectral(filename,3,vec![1,2]);
-    let qe = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,10, vec![1000,1500], filename);
+    File::create(input);
+    File::create(result);
 
-
+    hallucinate_spatial_spectral(input,num_pixles,frequencies.clone());
+    let qe = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,num_pixles, frequencies.clone(), input);
+    let qe2 = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,num_pixles, frequencies.clone(), input);
+    effects::add(qe,qe2,result);
+    /*
     let fake_light =Array3::random(
-        (3,3, 2),
+        (4000,4000, 10),
         Uniform::new(0., 1.)).to_owned();
-    println!("FAke light is {:?}",fake_light);
-    qe.apply(fake_light)
+
+     */
+    //println!("FAke light is {:?}",fake_light);
+    //qe.apply(fake_light)
    // QuantumEfficiency::hallucinate(4000,vec![1000,1500,2000,2500]);
   //  println!("serializing!");
 

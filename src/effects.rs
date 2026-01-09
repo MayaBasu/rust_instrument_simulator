@@ -1,12 +1,7 @@
-use ndarray::{Array, ArrayBase, Dim, Ix, OwnedRepr, Array3, array, Array1, Array2};
-use ndarray_rand::rand_distr::Uniform;
-use ndarray_rand::RandomExt;
-use std::f64::*;
-use std::io::{Bytes, Write};
-use std::any::type_name;
-use ndarray_rand::rand_distr::num_traits::ToBytes;
+use ndarray::{Array, Array3, Array1, Array2, Dimension, array};
 use memmap2::Mmap;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::io::Write;
 use std::time::Instant;
 use memmap2::*;
 
@@ -15,6 +10,14 @@ pub enum EffectType {
     ComponentWiseAddition,
     Convolution
 }
+/*
+pub struct MemoryMap{
+    size: Dimension,
+    memory_map: Mmap,
+
+}
+
+ */
 
 pub struct SpatialSpectralEffect {
     label: String,
@@ -23,6 +26,7 @@ pub struct SpatialSpectralEffect {
     number_of_pixels: usize,
     sample_frequencies_in_nm: Vec<usize>,
     data:Mmap,
+
 }
 
 pub struct SpectralEffect {
@@ -55,39 +59,154 @@ impl SpatialSpectralEffect {
 
     }
 
-    pub fn apply(&self, data_cube:Array3<f64>){
 
-        let resultant_data_cube = match self.effect_type {
-            EffectType::ComponentWiseAddition => {
-                let now = Instant::now();
-                //println!("data_cube is {:?}", data_cube);
-                //let flat_pack_data_cube = data_cube.iter().map(|x: &f64| x).collect::<Vec<&f64>>();
-                //println!("flat_pack is {:?}", flat_pack_data_cube);
-                let mut effect_bytes = self.data[..].chunks(8);
-                let flat_packed_added_data = data_cube.iter().map(|x: &f64|{
-                    let effect_bytes: &[u8;8] =effect_bytes.next().unwrap().try_into().expect("REASON");
-                    let effect_float:f64 = f64::from_le_bytes(*effect_bytes);
-                    println!("x is {:?} and the bytes complie to {:?}, the addition is {:?}", x,effect_float,x+effect_float);
-                    x+effect_float
-                }
-                ).collect::<Vec<f64>>();
-                let added_data= Array::from_shape_vec(data_cube.shape(), flat_packed_added_data);
-
-
-
-                println!(" Preformed component-wise addition in {} ms", now.elapsed().as_millis());
-                println!(" the resulting added data cube is{:?}", added_data)
-
-            },
-            EffectType::ComponentWiseMultiplicative => {},
-            EffectType::Convolution =>{}
-        };
-    }
 
     fn reconstitute(&self) {
         let expected_array_size = self.number_of_pixels*self.number_of_pixels*self.sample_frequencies_in_nm.len();
         println!("File content: {}", String::from_utf8_lossy(&self.data[..]));
     }
+
+
+
+
+}
+
+
+/*
+fn apply_additive_effect<T>(effect_mmap:&Mmap, data_cube:Array<f64,T>) where T: Dimension{
+        let now = Instant::now();
+
+        let mut effect_bytes = effect_mmap[..].chunks(8);
+        let flat_packed_added_data = data_cube.iter().map(|x: &f64|{
+            let effect_bytes: &[u8;8] = effect_bytes.next().unwrap().try_into().expect("REASON");
+            let effect_float:f64 = f64::from_le_bytes(*effect_bytes);
+            //println!("x is {:?} and the bytes complie to {:?}, the addition is {:?}", x,effect_float,x+effect_float);
+            x+effect_float
+        }
+        ).collect::<Vec<f64>>();
+        let added_data= Array::from_shape_vec(data_cube.shape(), flat_packed_added_data);
+        println!(" Preformed component-wise addition in {} s", now.elapsed().as_secs());
+      //  println!(" the resulting added data cube is{:?}", added_data)
+}
+
+ */
+
+/*
+pub fn apply_additive_effect_mmap(data_cube_1:SpatialSpectralEffect, data_cube_2:SpatialSpectralEffect, result_file_name:&str){
+    let now = Instant::now();
+
+    let num_blocks =  1;
+    let data_length = &data_cube_1.data[..].len();
+    println!("data length is {:?}", data_length);
+
+    let mut result_file = OpenOptions::new()
+        .append(true)
+        .open(result_file_name)
+        .expect("Unable to open file");
+
+    let mut dc_1_blocks = &data_cube_1.data[..].chunk(data_length/num_blocks);
+    let mut dc_2_blocks = &data_cube_2.data[..].chunk(data_length/num_blocks);
+
+    for block_num in 1..num_blocks{
+        let data_cube_1_block = dc_1_blocks.next().
+
+        let mut data_cube_2_bytes = data_cube_2_block.array_chunks::<8>();
+        for data_cube_1_8bytes in data_cube_1_block.array_chunks::<8>(){
+            /*
+            let data_cube_1_8byte_array: &[u8; 8] = data_cube_2_bytes.next().unwrap().try_into().expect("REASON");
+            let data_cube_2_8byte_array: &[u8; 8] = data_cube_1_8bytes.try_into().expect("REASON");
+
+             */
+
+            let data_cube_1_float: f64 = f64::from_le_bytes(*data_cube_1_8bytes);
+            let data_cube_2_float: f64 = f64::from_le_bytes(*data_cube_2_bytes);
+
+            let sum = data_cube_1_float + data_cube_2_float;
+
+            result_file.write_all(&(sum).to_le_bytes()[..]).expect("REASON")
+        }
+
+
+
+    }
+
+
+    let mut data_cube_2_block_slice = &data_cube_2.data[..];
+    let mut data_cube_2_block_slice = &data_cube_2.data[..];
+
+    let data_cube_1_block: [u8;320000]= data_cube_1_block_slice.try_into().expect("REASON");
+    let data_cube_2_block: [u8;320000] = data_cube_2_block_slice.try_into().expect("REASON");
+
+
+
+    println!(" Preformed component-wise addition on disk in {} s", now.elapsed().as_secs());
+}
+
+ */
+
+
+
+
+
+pub fn add(data_cube_1:SpatialSpectralEffect, data_cube_2:SpatialSpectralEffect, result_file_name:&str){
+    //How many u8's are in the memory map of data cube 1
+    let flat_pack_data_size =
+            data_cube_1.number_of_pixels*
+            data_cube_1.number_of_pixels*
+            data_cube_1.sample_frequencies_in_nm.len()*
+            8;
+    //Now we set a chunk size, which must be a multiple of 8
+
+    pub const chunk_size:usize = 8*2;
+    let num_chunks: usize = (flat_pack_data_size/chunk_size);
+
+    println!("The flat pack data is {:?} bytes long, and will be broken into {:?} chunks of {:?} with a remaining chunk of size {:?}",
+             flat_pack_data_size,
+             (flat_pack_data_size/chunk_size),
+             chunk_size,
+        flat_pack_data_size - (flat_pack_data_size/chunk_size)*chunk_size
+    );
+
+    let mut starting_index = 0;
+    for chunk_number in 1..num_chunks+1{
+
+        //move a chunk to RAM
+        let chunk_1:&[u8;chunk_size] = data_cube_1.data[starting_index..(chunk_size* chunk_number)].try_into().expect("Problem when moving data to RAM");
+        let chunk_2:&[u8;chunk_size] = data_cube_1.data[starting_index..(chunk_size* chunk_number)].try_into().expect("Problem when moving data to RAM");
+
+
+
+
+        println!("data on ram is {:?}",chunk_1);
+
+
+     //   let eight_byte_chunks = &data_cube_1.data[starting_index..(chunk_size*chunk)].chunks(8);
+
+       // for eith_bytes in eight_byte_chunks{
+          //  let b: [u8;8] = bytes.next().unwrap().try_into().expect("lsiejf");
+          //  println!("byte is {:?}",b)
+
+      //  }
+
+
+       // println!("data on ram {:?}", data_on_ram);
+
+
+
+       //println!("The data chunk is {:?}", &data_cube_1.data[starting_index..(chunk_size*chunk)].chunks(8).map(|x|x.try_into()).collect::<Vec<[u8;8]>>());
+        let mut bytes = &mut data_cube_1.data[starting_index..(chunk_size* chunk_number)].chunks(8);
+        for element in 0..chunk_size/8{
+            let b: [u8;8] = bytes.next().unwrap().try_into().expect("lsiejf");
+            println!("byte is {:?}",b)
+
+        }
+
+        starting_index = starting_index + chunk_size;
+    }
+    println!("The data chunk is {:?}", &data_cube_1.data[starting_index..]);
+
+
+
 
 
 
