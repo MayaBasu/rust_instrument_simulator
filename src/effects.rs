@@ -149,14 +149,20 @@ pub fn apply_additive_effect_mmap(data_cube_1:SpatialSpectralEffect, data_cube_2
 
 
 pub fn add(data_cube_1:SpatialSpectralEffect, data_cube_2:SpatialSpectralEffect, result_file_name:&str){
+
+    let mut result_file = OpenOptions::new()
+        .append(true)
+        .open(result_file_name)
+        .expect("Unable to open file");
+
     //How many u8's are in the memory map of data cube 1
     let flat_pack_data_size =
             data_cube_1.number_of_pixels*
             data_cube_1.number_of_pixels*
             data_cube_1.sample_frequencies_in_nm.len()*
             8;
-    //Now we set a chunk size, which must be a multiple of 8
 
+    //Now we set a chunk size, which must be a multiple of 8
     pub const chunk_size:usize = 8*2;
     let num_chunks: usize = (flat_pack_data_size/chunk_size);
 
@@ -167,49 +173,35 @@ pub fn add(data_cube_1:SpatialSpectralEffect, data_cube_2:SpatialSpectralEffect,
         flat_pack_data_size - (flat_pack_data_size/chunk_size)*chunk_size
     );
 
-    let mut starting_index = 0;
+    let mut starting_chunk_index = 0;
     for chunk_number in 1..num_chunks+1{
 
         //move a chunk to RAM
-        let chunk_1:&[u8;chunk_size] = data_cube_1.data[starting_index..(chunk_size* chunk_number)].try_into().expect("Problem when moving data to RAM");
-        let chunk_2:&[u8;chunk_size] = data_cube_1.data[starting_index..(chunk_size* chunk_number)].try_into().expect("Problem when moving data to RAM");
-
-
-
+        let chunk_1:&[u8;chunk_size] = data_cube_1.data[starting_chunk_index..(chunk_size* chunk_number)].try_into().expect("Problem when moving data to RAM");
+        let chunk_2:&[u8;chunk_size] = data_cube_1.data[starting_chunk_index..(chunk_size* chunk_number)].try_into().expect("Problem when moving data to RAM");
 
         println!("data on ram is {:?}",chunk_1);
 
+        let mut starting_byte_index = 0;
+        for byte_number in 1..chunk_size/8+1{
 
-     //   let eight_byte_chunks = &data_cube_1.data[starting_index..(chunk_size*chunk)].chunks(8);
+            let byte_array_1:[u8;8] = chunk_1[starting_byte_index..(8*byte_number)].try_into().expect("problem with data conversion");
+            let float_1 = f64::from_le_bytes(byte_array_1);
 
-       // for eith_bytes in eight_byte_chunks{
-          //  let b: [u8;8] = bytes.next().unwrap().try_into().expect("lsiejf");
-          //  println!("byte is {:?}",b)
+            let byte_array_2:[u8;8] = chunk_2[starting_byte_index..(8*byte_number)].try_into().expect("problem with data conversion");
+            let float_2 = f64::from_le_bytes(byte_array_1);
 
-      //  }
-
-
-       // println!("data on ram {:?}", data_on_ram);
-
+            let sum = float_1+float_2;
 
 
-       //println!("The data chunk is {:?}", &data_cube_1.data[starting_index..(chunk_size*chunk)].chunks(8).map(|x|x.try_into()).collect::<Vec<[u8;8]>>());
-        let mut bytes = &mut data_cube_1.data[starting_index..(chunk_size* chunk_number)].chunks(8);
-        for element in 0..chunk_size/8{
-            let b: [u8;8] = bytes.next().unwrap().try_into().expect("lsiejf");
-            println!("byte is {:?}",b)
+            result_file.write_all(&sum.to_le_bytes()).expect("REASON");
 
+
+
+            starting_byte_index = starting_byte_index + 8;
         }
-
-        starting_index = starting_index + chunk_size;
+        starting_chunk_index = starting_chunk_index + chunk_size;
     }
-    println!("The data chunk is {:?}", &data_cube_1.data[starting_index..]);
-
-
-
-
-
-
 
 }
 
