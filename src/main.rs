@@ -2,30 +2,33 @@
 mod effects;
 
 mod hallucinations;
+mod data_cube_management;
 
 use std::fs::File;
 use ndarray::prelude::*;
-use ndarray_rand::rand_distr::Uniform;
-use ndarray_rand::RandomExt;
+
 use effects::SpatialSpectralEffect;
 use crate::hallucinations::hallucinate_spatial_spectral;
 
 
 fn main() {
-    let num_pixles:usize = 3;
+    let num_pixles:usize = 6000;
     let frequencies = vec![1];
 
-    //let a = Array::<f64, _>::zeros((3, 2, 4).f());
-    let input = "/Users/mayabasu/Desktop/data/input.txt";
-    let result = "/Users/mayabasu/Desktop/data/output.txt";
 
+    let input = "/Users/mayabasu/Desktop/data/lite.txt";
+    let result = "/Users/mayabasu/Desktop/data/output.txt";
     File::create(input);
     File::create(result);
-
     hallucinate_spatial_spectral(input,num_pixles,frequencies.clone());
+
     let qe = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,num_pixles, frequencies.clone(), input);
     let qe2 = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,num_pixles, frequencies.clone(), input);
-    effects::add(qe,qe2,result);
+    let qe3 = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,num_pixles, frequencies.clone(), input);
+    let qe4 = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,num_pixles, frequencies.clone(), input);
+
+
+    effects::quad_add(qe,qe2,qe3,qe4,result);
     /*
     let fake_light =Array3::random(
         (4000,4000, 10),
