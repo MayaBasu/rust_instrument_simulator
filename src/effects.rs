@@ -5,11 +5,8 @@ use std::io::Write;
 use std::time::Instant;
 use memmap2::*;
 
-pub enum EffectType {
-    ComponentWiseMultiplicative,
-    ComponentWiseAddition,
-    Convolution
-}
+
+
 /*
 pub struct MemoryMap{
     size: Dimension,
@@ -19,15 +16,7 @@ pub struct MemoryMap{
 
  */
 
-pub struct SpatialSpectralEffect {
-    label: String,
-    active: bool,
-    effect_type: EffectType,
-    number_of_pixels: usize,
-    sample_frequencies_in_nm: Vec<usize>,
-    data:Mmap,
-
-}
+/*
 
 pub struct SpectralEffect {
     label: String,
@@ -36,6 +25,8 @@ pub struct SpectralEffect {
     sample_frequencies_in_nm: Vec<usize>,
     data:Array1<f64>,
 }
+
+
 pub struct SpatialEffect {
     label: String,
     active: bool,
@@ -47,29 +38,8 @@ pub struct SpatialEffect {
 pub trait DataCube {
     fn name(&self) -> String;
 }
-impl SpatialSpectralEffect {
-    pub fn initialize(label:String,active:bool,effect_type: EffectType,number_of_pixels:usize,sample_frequencies_in_nm: Vec<usize>,file_name: &str) -> SpatialSpectralEffect{
-        let file = File::open(file_name).unwrap();
-        // Create a memory map for the file
-        let now = Instant::now();
-        let mmap = unsafe { Mmap::map(&file).unwrap() };
-        println!("Created a memory map in {} ms", now.elapsed().as_millis());
 
-        SpatialSpectralEffect{label,active,effect_type, number_of_pixels,sample_frequencies_in_nm,data:mmap}
-
-    }
-
-
-
-    fn reconstitute(&self) {
-        let expected_array_size = self.number_of_pixels*self.number_of_pixels*self.sample_frequencies_in_nm.len();
-        println!("File content: {}", String::from_utf8_lossy(&self.data[..]));
-    }
-
-
-
-
-}
+ */
 
 
 /*
@@ -146,7 +116,7 @@ pub fn apply_additive_effect_mmap(data_cube_1:SpatialSpectralEffect, data_cube_2
 
 
 
-
+/*
 
 pub fn add(data_cube_1:SpatialSpectralEffect, data_cube_2:SpatialSpectralEffect, result_file_name:&str){
     let now = Instant::now();
@@ -382,6 +352,8 @@ pub fn write_to_disk(data:Vec<f64>,result_file_name:&str){
     println!("Wrote data to disk in {} ms", now.elapsed().as_nanos());
 
 }
+
+ */
 
 
 

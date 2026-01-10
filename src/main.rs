@@ -1,14 +1,15 @@
 
 mod effects;
-
-mod hallucinations;
 mod data_cube_management;
+mod hallucinations;
+
 
 use std::fs::File;
 use ndarray::prelude::*;
 
-use effects::SpatialSpectralEffect;
+use data_cube_management::SpatialSpectralEffect;
 use crate::hallucinations::hallucinate_spatial_spectral;
+pub const float_size:usize = 8;  //number of bytes in one float
 
 
 fn main() {
@@ -28,7 +29,7 @@ fn main() {
     let qe4 = SpatialSpectralEffect::initialize("lske".to_string(), true, effects::EffectType::ComponentWiseAddition,num_pixles, frequencies.clone(), input);
 
 
-    effects::quad_add(qe,qe2,qe3,qe4,result);
+    data_cube_management::combine_data_cubes(vec![qe, qe2, qe3, qe4], data_cube_management::ElementWiseCombinationType::ComponentWiseAddition, "result");
     /*
     let fake_light =Array3::random(
         (4000,4000, 10),
