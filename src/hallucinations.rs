@@ -44,7 +44,7 @@ pub fn hallucinate_spatial_spectral(file_name:&str, number_of_pixels: usize, sam
         .expect("Unable to open file");
 
     let num_floats= number_of_pixels*number_of_pixels*sample_frequencies_in_nm.len();
-    let bus_size = 100000*8;
+    let bus_size = 1000*8;
     let num_batches = num_floats/bus_size;
 
 
