@@ -2,17 +2,15 @@
 mod effects;
 mod data_cube_management;
 mod hallucinations;
+pub const b:usize = 8;
 use csv::*;
 mod linewisedatagen;
-
-use data_cube_management::ElementWiseCombinationType;
-
-
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::time::Instant;
+use memmap2::Mmap;
 use ndarray::prelude::*;
-
+use zerocopy::IntoBytes;
 use data_cube_management::SpatialSpectralEffect;
 use crate::hallucinations::hallucinate_spatial_spectral;
 pub const float_size:usize = 8;  //number of bytes in one float
@@ -22,72 +20,184 @@ fn name_gen(linesize:usize,num_lines:usize,delinator:&str) -> String {
 }
 
 fn main() {
-
-    const linesize:usize = 12000;
-    const num_lines:usize = 12000;
+    const linesize:usize = 4;
+    const num_lines:usize = 4;
     const write_chunk_size:usize = 1;
 
     let name1 = name_gen(linesize,num_lines,"A");
     let name2 = name_gen(linesize,num_lines,"B");
 
     println!("Generating files {name1} and {name2}...");
-
-    //linewisedatagen::example(linesize,num_lines,name1.as_str()).unwrap();
-  // linewisedatagen::example(linesize,num_lines,name2.as_str()).unwrap();
+    linewisedatagen::byte_version(linesize,num_lines,name1.as_str());
+    linewisedatagen::byte_version(linesize,num_lines,name2.as_str());
     println!("adding the files");
 
 
     let now = Instant::now();
 
-    let f1 = File::open(name1).unwrap();
-    let f1 = BufReader::new(f1);
+   // let f1 = File::open(name1).unwrap();
 
-    let f2 = File::open(name2).unwrap();
-    let f2 = BufReader::new(f2);
 
-    let result_file = Writer::from_path("result.txt");
-    let mut result_file = match result_file {
-        Ok(writer) => writer,
-        Err(_err) => panic!(),
+
+    let file1 = File::open(name1.clone()).unwrap();
+    //let f1 = BufReader::new(file1);
+
+    /*
+    for line in f1.lines(){
+        println!("line is {:?}",line.unwrap().into_bytes())
+    }
+    let file1 = File::open(name1).unwrap();
+
+     */
+    let mmap1 = unsafe { Mmap::map(&file1).unwrap() };
+
+ //   println!("ljs;efjesl {:?}   {:?}", b',',  b'\n');
+//    for i in 0..40{
+ //       println!("{}",mmap1[i]);
+  //  }
+    let (data, []) = &mmap1[..].as_chunks::<b>() else {
+        panic!("slice didn't have even length")
     };
 
 
-    let mut lines2 = f2.lines();
+    println!("{:?}",f64::from_be_bytes(data[0]));
 
-    //let write_counter = 0;
-    for line1 in f1.lines(){
-        let mut result_line:[f64;linesize]  = [0.0;linesize];
 
+
+
+
+
+
+
+    let file2 = File::open(name2).unwrap();
+    let mmap2 = unsafe { Mmap::map(&file2).unwrap() };
+
+    /*
+
+    for line_number in 0..num_lines{
+        for element in 0..linesize{
+            // The starting index into the mmap is the addition of
+            /*
+            1. The number of new line characters, each getting one byte
+            2. Each element prior included 18 bytes
+            3. Each comma prior was a byte
+
+            So in total we want the starting index to be 19*element + line_number, and the ending index to be the starting index + 18
+             */
+
+            let starting_index = line_number + 19*element;
+            let ending_index = starting_index + 18;
+            println!("start: {starting_index} end: {ending_index}");
+            let result = str::from_utf8(&mmap1[starting_index..ending_index]).unwrap().parse::<f64>().unwrap();
+            let result2 = str::from_utf8(&mmap2[starting_index..ending_index]).unwrap().parse::<f64>().unwrap();
+            println!("Element 1 is {:?} and element 2 is {:?}", result, result2)
+
+        }
+        println!("New line")
+    }
+
+     */
+
+
+    // let f1 = BufReader::new(f1);
+
+   // let f2 = File::open(name2).unwrap();
+   // let f2 = BufReader::new(f2);
+
+
+    let result_file = File::create("result").unwrap();
+   // let mut result_file = BufWriter::new(result_file);
+
+
+
+
+
+
+
+
+   // let mut result_data:[f64;linesize]  = [0.0;linesize];
+   // let mut result_data:[&[u8];linesize*write_chunk_size]  = [&[0];linesize*write_chunk_size];
+  //  let mut line_num_ticker = 0;
+
+    /*
+
+    println!("new line is {:?}", b'\n');
+
+    let mut lines2 = f2.split(b'\n');
+    for line1 in f1.split(b'\n'){
         let line1 = line1.unwrap();
         let line2 = lines2.next().unwrap().unwrap();
+        let result = str::from_utf8(&line1[0..18]).unwrap().parse::<f64>().unwrap();
+        let result2 = str::from_utf8(&line1[0..18]).unwrap().parse::<f64>().unwrap();
+        println!("line is {:?} ,{:?}",line1 ,str::from_utf8(&line1[0..18]).unwrap());
+        println!("The result is {}",result+result2);
 
-        //let line1: Vec<&str> =line1.as_str().split(",").collect::<Vec<&str>>();
-       // let line2: Vec<&str> = line2.as_str().split(",").collect::<Vec<&str>>();
-
-       // let line1:[f64;linesize] = line1.iter().map(|x| x.parse().unwrap()).collect::<Vec<f64>>().try_into().unwrap();
-        //let line2:[f64;linesize] = line2.iter().map(|x| x.parse().unwrap()).collect::<Vec<f64>>().try_into().unwrap();
-
-
-        let line1:[f64;linesize] = line1.as_str().split(",").map(|x| x.parse().unwrap()).collect::<Vec<f64>>().try_into().unwrap();
-        let line2:[f64;linesize] = line2.as_str().split(",").map(|x| x.parse().unwrap()).collect::<Vec<f64>>().try_into().unwrap();
+     */
+        /*
 
 
 
-        for i in 0..linesize {
-            let sum = line1[i] + line2[i];
-            result_line[i] = sum;
+
+
+
+        let mut line1_split = line1.split(|c| *c ==b',');
+        let mut line2_split = line2.split(|c| *c ==b',');
+        for element in 0..linesize{
+            let element1 = line1_split.next().unwrap();
+            let element2 = line2_split.next().unwrap();
+            println!("e1 {:?}  e2{:?} ",str::from_utf8(&element2[..]).unwrap(), str::from_utf8(&element1[..]).unwrap());
+           // let element1 = str::from_utf8(line1_split.next().unwrap()).unwrap().parse::<f64>().unwrap();
+           // let element2 = str::from_utf8(line2_split.next().unwrap()).unwrap().parse::<f64>().unwrap();
+
+         //   println!("elemet 1 and 2{:?}, {:?}",element1,element2);
         }
-        //println!("The lines and result are \n {:?} \n {:?} \n {:?} ",line1,line2,result_line);
-        let result_line:Vec<String> = result_line.iter().map(|x| x.to_string()).collect();
+        println!("new row")
 
-        result_file.write_record(result_line).unwrap()
+     */
+
+
+
+    }/*
+
+    let mut lines2 = f2.split(b'\n');
+    for line1 in f1.split(b'\n'){
+        println!("line {:?}",line1);
+        let line1 = line1.unwrap();
+        let line2 = lines2.next().unwrap().unwrap();
+        println!("line w {:?}",line1);
+        let mut line1_split = line1.rsplitn(2, |c| *c==b',');
+        let mut line2_split = line2.rsplitn(2, |c| *c==b',');
+
+        for i in 0..linesize{
+            println!("lj;oijl{:?}",line1_split.next().unwrap());
+           // println!("{:?}",line1_split);
+            let sum: f64 = str::from_utf8(line1_split.next().unwrap()).unwrap().parse::<f64>().unwrap() +
+                str::from_utf8(line2_split.next().unwrap()).unwrap().parse::<f64>().unwrap();
+            result_data[i] = sum;
+          //  println!("sum as bytes{:?}",sum.as_bytes())
+
+        }
+       // println!("result {:?}",result_data.as_bytes());
+
+
+        //if line_num_ticker%write_chunk_size ==0{
+        result_file.write(result_data.as_bytes()).unwrap();
+
+        if line_num_ticker%10 ==0{
+            result_file.flush().unwrap();
+            //}
+
+        }
+
+        line_num_ticker +=1;
 
 
 
 
     }
+    */
 
-    println!("completed task in {:?}", now.elapsed().as_secs());
+   // println!("completed task in {:?}", now.elapsed().as_secs());
 
 
 
@@ -148,7 +258,7 @@ fn main() {
 
      */
 
-}
+
 
 //integrate bs checking/data verification and link up gneration/storage
 
