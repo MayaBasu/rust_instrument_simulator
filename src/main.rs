@@ -1,4 +1,4 @@
-
+use tokio::io::{self, AsyncWrite};
 mod effects;
 mod data_cube_management;
 mod hallucinations;
@@ -19,13 +19,15 @@ fn name_gen(linesize:usize,num_lines:usize,delinator:&str) -> String {
 
 }
 
-fn main() {
-    const linesize:usize = 4;
-    const num_lines:usize = 4;
-    const write_chunk_size:usize = 1;
+fn bytes_method(){
 
-    let name1 = name_gen(linesize,num_lines,"A");
-    let name2 = name_gen(linesize,num_lines,"B");
+    const linesize:usize = 12000;
+    const num_lines:usize = 12000;
+
+
+
+    let name1 = name_gen(linesize,num_lines,"A_bytes");
+    let name2 = name_gen(linesize,num_lines,"B_bytes");
 
     println!("Generating files {name1} and {name2}...");
     linewisedatagen::byte_version(linesize,num_lines,name1.as_str());
@@ -33,13 +35,163 @@ fn main() {
     println!("adding the files");
 
 
+
+    let file1 = File::open(name1.clone()).unwrap();
+    let file2 = File::open(name2.clone()).unwrap();
+
+    let result_file = File::create("result").unwrap();
+
+   // let mut file = File::create("foo.txt").unwrap();
+
+    let mut result_buf = BufWriter::new(result_file);
+    let mmap1 = unsafe { Mmap::map(&file1).unwrap() };
+    let mmap2 = unsafe { Mmap::map(&file2).unwrap() };
+
+    /*
+    let (data1, []) = &mmap1[..].as_chunks::<b>() else {
+        panic!("slice didn't have even length")
+    };
+    let (data2, []) = &mmap2[..].as_chunks::<b>() else {
+        panic!("slice didn't have even length")
+    };
+
+     */
+  //  let mut final_sum = 0.0;
     let now = Instant::now();
+    use rayon::prelude::*;
+
+    let result: Vec<f64> = (0..num_lines*linesize).into_par_iter().map(|i| {
+        let start = i*8;
+        let end = start+8;
+        let e1 = f64::from_le_bytes(mmap1[start..end].try_into().unwrap());
+        let e2 = f64::from_le_bytes(mmap2[start..end].try_into().unwrap());
+        let addition = e1 + e2;
+        addition
+
+    })
+        .collect();
+
+
+
+        // Write data
+
+        // Ensure all data is written
+
+
+    println!("computation took {:?}",now.elapsed().as_millis());
+
+    for result_element in result{
+
+        result_buf.write_all(&result_element.to_be_bytes()[..]).unwrap()
+
+    }
+    result_buf.flush();
+    println!("computation took {:?}",now.elapsed().as_millis());
+
+
+
+
+   // result_buf.write(result_array)
+
+    }
+
+
+
+
+fn cv_method(){
+    const linesize:usize = 12000;
+    const num_lines:usize = 12000;
+    const write_chunk_size:usize = 1;
+
+    let name1 = name_gen(linesize,num_lines,"Ac");
+    let name2 = name_gen(linesize,num_lines,"Bc");
+
+    println!("Generating files {name1} and {name2}...");
+   // linewisedatagen::example(linesize,num_lines,name1.as_str());
+  //  linewisedatagen::example(linesize,num_lines,name2.as_str());
+    println!("adding the files");
+
+
+
+    let file1 = File::open(name1.clone()).unwrap();
+    let file2 = File::open(name2.clone()).unwrap();
+    let result_file = File::create("result").unwrap();
+    let mut result_buf = BufWriter::new(result_file);
+    let mmap1 = unsafe { Mmap::map(&file1).unwrap() };
+    let mmap2 = unsafe { Mmap::map(&file2).unwrap() };
+
+    /*
+    let (data1, []) = &mmap1[..].as_chunks::<b>() else {
+        panic!("slice didn't have even length")
+    };
+    let (data2, []) = &mmap2[..].as_chunks::<b>() else {
+        panic!("slice didn't have even length")
+    };
+
+     */
+    let now = Instant::now();
+    let mut lines2 = mmap2.split(|c| *c==b'\n');
+    for line in mmap1.split(|c| *c==b'\n'){
+
+
+        if line.is_empty(){
+            break;
+        }
+        let line2 = lines2.next().unwrap();
+        let elements = line.split(|c| *c==b',');
+        let mut elements2 = line2.split(|c| *c==b',');
+
+        for element in elements{
+            let element2 = elements2.next();
+            let num1 = str::from_utf8(element).unwrap().parse::<f64>().unwrap();
+            let num2 = str::from_utf8(element2.unwrap()).unwrap().parse::<f64>().unwrap();
+            let addition = num1+num2;
+            result_buf.write(&addition.to_be_bytes()[..]);
+
+        }
+        // Write data
+
+        // Ensure all data is written
+
+    }
+    result_buf.flush();
+
+    println!("took {:?}",now.elapsed().as_secs());
+
+}
+
+
+
+
+
+fn main() {
+   // bytes_method()
+    bytes_method()
+
+
+
+/*
+    for i in 0..data1.len(){
+        let e1 = f64::from_be_bytes(data1[i]);
+        let e2 = f64::from_be_bytes(data2[i]);
+        let result:f64 = e1+e2;
+       // println!("e1 {:?}   e2 {:?}",e1,e2);
+        result_buf.write_all(&result.to_be_bytes()[..]).unwrap()
+    }
+
+ */
+
+
+
+
+
+
 
    // let f1 = File::open(name1).unwrap();
 
 
 
-    let file1 = File::open(name1.clone()).unwrap();
+
     //let f1 = BufReader::new(file1);
 
     /*
@@ -49,18 +201,12 @@ fn main() {
     let file1 = File::open(name1).unwrap();
 
      */
-    let mmap1 = unsafe { Mmap::map(&file1).unwrap() };
+
 
  //   println!("ljs;efjesl {:?}   {:?}", b',',  b'\n');
 //    for i in 0..40{
  //       println!("{}",mmap1[i]);
   //  }
-    let (data, []) = &mmap1[..].as_chunks::<b>() else {
-        panic!("slice didn't have even length")
-    };
-
-
-    println!("{:?}",f64::from_be_bytes(data[0]));
 
 
 
@@ -69,8 +215,12 @@ fn main() {
 
 
 
-    let file2 = File::open(name2).unwrap();
-    let mmap2 = unsafe { Mmap::map(&file2).unwrap() };
+
+
+
+
+  //  let file2 = File::open(name2).unwrap();
+  //  let mmap2 = unsafe { Mmap::map(&file2).unwrap() };
 
     /*
 
@@ -105,7 +255,7 @@ fn main() {
    // let f2 = BufReader::new(f2);
 
 
-    let result_file = File::create("result").unwrap();
+    //let result_file = File::create("result").unwrap();
    // let mut result_file = BufWriter::new(result_file);
 
 

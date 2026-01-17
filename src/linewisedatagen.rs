@@ -24,6 +24,9 @@ pub fn example(line_size:usize, num_lines:usize, file_name:&str) -> Result<()> {
 
 
     for line_num in 0..num_lines{
+        if line_num%1000 ==0{
+            println!("Generating line {line_num}");
+        }
         let mut line: Vec<String> = Vec::with_capacity(items_perLine);
         for item in 0..items_perLine{
             line.push(rng().random_range(0.0..1.0).to_string())
@@ -49,16 +52,19 @@ pub fn byte_version(line_size:usize, num_lines:usize, file_name:&str) -> Result<
 
 
     for line_num in 0..num_lines{
+        if line_num%1000 ==0{
+            println!("Generating line {line_num}");
+        }
         let mut line: Vec<String> = Vec::with_capacity(items_perLine);
         for item in 0..items_perLine{
             let value: f64 = rng().random_range(0.0..1.0);
 
             line.push(value.to_string());
 
-            buf.write_all(&value.to_be_bytes()[..]).unwrap();
+            buf.write_all(&value.to_le_bytes()[..]).unwrap();
 
         }
-        println!("Line is {:?}",line);
+     //   println!("Line is {:?}",line);
         buf.flush().unwrap();
 
         //writer.write_record(line);
