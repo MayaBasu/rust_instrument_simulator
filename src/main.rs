@@ -1,5 +1,6 @@
 use tokio::io::{self, AsyncWrite};
 mod effects;
+use bytes::Buf;
 mod data_cube_management;
 mod hallucinations;
 pub const b:usize = 8;
@@ -30,8 +31,8 @@ fn bytes_method(){
     let name2 = name_gen(linesize,num_lines,"B_bytes");
 
     println!("Generating files {name1} and {name2}...");
-    linewisedatagen::byte_version(linesize,num_lines,name1.as_str());
-    linewisedatagen::byte_version(linesize,num_lines,name2.as_str());
+    //linewisedatagen::byte_version(linesize,num_lines,name1.as_str());
+    //linewisedatagen::byte_version(linesize,num_lines,name2.as_str());
     println!("adding the files");
 
 
@@ -63,8 +64,8 @@ fn bytes_method(){
     let result: Vec<f64> = (0..num_lines*linesize).into_par_iter().map(|i| {
         let start = i*8;
         let end = start+8;
-        let e1 = f64::from_le_bytes(mmap1[start..end].try_into().unwrap());
-        let e2 = f64::from_le_bytes(mmap2[start..end].try_into().unwrap());
+        let e1 = (&mmap1[start..end]).try_get_f64().unwrap();
+        let e2 = (&mmap2[start..end]).try_get_f64().unwrap();
         let addition = e1 + e2;
         addition
 
