@@ -1,3 +1,5 @@
+#![allow(warnings)]
+//gjh
 use tokio::io::{self, AsyncWrite};
 mod effects;
 use bytes::Buf;
@@ -61,7 +63,7 @@ fn bytes_method(){
     let now = Instant::now();
     use rayon::prelude::*;
 
-    let result: Vec<f64> = (0..num_lines*linesize).into_par_iter().map(|i| {
+    let result: Vec<f64> = (0..num_lines*linesize).into_iter().map(|i| {
         let start = i*8;
         let end = start+8;
         let e1 = (&mmap1[start..end]).try_get_f64().unwrap();
@@ -95,6 +97,88 @@ fn bytes_method(){
    // result_buf.write(result_array)
 
     }
+
+
+
+
+fn chunky_bytes_method(){
+
+    const linesize:usize = 12000;
+    const num_lines:usize = 12000;
+
+
+
+    let name1 = name_gen(linesize,num_lines,"A_bytes");
+    let name2 = name_gen(linesize,num_lines,"B_bytes");
+
+    println!("Generating files {name1} and {name2}...");
+    //linewisedatagen::byte_version(linesize,num_lines,name1.as_str());
+    //linewisedatagen::byte_version(linesize,num_lines,name2.as_str());
+    println!("adding the files");
+
+
+
+    let file1 = File::open(name1.clone()).unwrap();
+    let file2 = File::open(name2.clone()).unwrap();
+
+    let result_file = File::create("result").unwrap();
+
+    // let mut file = File::create("foo.txt").unwrap();
+
+    let mut result_buf = BufWriter::new(result_file);
+    let mmap1 = unsafe { Mmap::map(&file1).unwrap() };
+    let mmap2 = unsafe { Mmap::map(&file2).unwrap() };
+
+    let mmap1 = &mmap1[..];
+    let mmap2 = &mmap2[..];
+
+    /*
+    let (data1, []) = &mmap1[..].as_chunks::<b>() else {
+        panic!("slice didn't have even length")
+    };
+    let (data2, []) = &mmap2[..].as_chunks::<b>() else {
+        panic!("slice didn't have even length")
+    };
+
+     */
+    //  let mut final_sum = 0.0;
+    let now = Instant::now();
+    use rayon::prelude::*;
+
+    let result: Vec<f64> = (0..num_lines*linesize).into_iter().map(|i| {
+        let start = i*8;
+        let end = start+8;
+        let e1 = (&mmap1[start..end]).try_get_f64().unwrap();
+        let e2 = (&mmap2[start..end]).try_get_f64().unwrap();
+        let addition = e1 + e2;
+        addition
+
+    })
+        .collect();
+
+
+
+    // Write data
+
+    // Ensure all data is written
+
+
+    println!("computation took {:?}",now.elapsed().as_millis());
+
+    for result_element in result{
+
+        result_buf.write_all(&result_element.to_be_bytes()[..]).unwrap()
+
+    }
+    result_buf.flush();
+    println!("computation took {:?}",now.elapsed().as_millis());
+
+
+
+
+    // result_buf.write(result_array)
+
+}
 
 
 
@@ -164,10 +248,10 @@ fn cv_method(){
 
 
 
-
-fn main() {
+#[tokio::main]
+async fn main() {
    // bytes_method()
-    bytes_method()
+ //   chunky_bytes_method()
 
 
 
