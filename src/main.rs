@@ -1,6 +1,5 @@
 #![allow(warnings)]
 //gjh
-use tokio::io::{self, AsyncWrite};
 mod effects;
 use bytes::Buf;
 mod data_cube_management;
@@ -15,7 +14,7 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::time::Instant;
 use memmap2::Mmap;
 use ndarray::prelude::*;
-use tokio::spawn;
+use std::thread;
 use zerocopy::IntoBytes;
 use data_cube_management::SpatialSpectralEffect;
 use crate::hallucinations::hallucinate_spatial_spectral;
@@ -136,7 +135,7 @@ async fn async_bytes_method(generate:bool){
    // let joinhandel2 = spawn(get_result(&mmap1[mmap1.len()/2..],&mmap2[mmap1.len()/2..]));
 
     let mut join_handels = Vec::new();
-    let num_spawns = 1000000;
+    let num_spawns = 10;
 
     for i in 0..num_spawns{
         let mmap1 = unsafe { Mmap::map(&file1).unwrap() };
@@ -144,16 +143,16 @@ async fn async_bytes_method(generate:bool){
 
         let start = i*linesize*num_lines/num_spawns;
         let end = (i+1)*linesize*num_lines/num_spawns;
-        let joinhandel = spawn(get_result(mmap1,mmap2,start,end));
+        let joinhandel = thread::spawn(||{get_result(mmap1,mmap2,start,end)});
         join_handels.push(joinhandel);
     }
 
 
-    let mut result = Vec::new();
+    let mut result:Vec<f64> = Vec::new();
 
-    for join_handel in join_handels{
-        let mut vec = join_handel.await.unwrap();
-        result.append(&mut vec);
+    for mut join_handel in join_handels{
+
+        result.push(*&mut join_handel.join().unwrap());
 
     }
     println!("computation took {:?}",now.elapsed().as_millis());
@@ -345,9 +344,9 @@ fn cv_method(){
 
 
 
-#[tokio::main]
-async fn main() {
-    async_bytes_method(false).await
+
+fn main() {
+    async_bytes_method(false)
    // bytes_method()
  //   chunky_bytes_method()
 
