@@ -6,13 +6,16 @@ use bytes::Buf;
 mod data_cube_management;
 mod hallucinations;
 pub const b:usize = 8;
+use rayon::prelude::*;
 use csv::*;
 mod linewisedatagen;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
+
 use std::time::Instant;
 use memmap2::Mmap;
 use ndarray::prelude::*;
+use tokio::spawn;
 use zerocopy::IntoBytes;
 use data_cube_management::SpatialSpectralEffect;
 use crate::hallucinations::hallucinate_spatial_spectral;
@@ -98,6 +101,100 @@ fn bytes_method(){
 
     }
 
+
+async fn async_bytes_method(generate:bool){
+
+    pub const linesize:usize = 12000; //number of matrix columns
+    pub const num_lines:usize = 12000; //number of matrix rows
+
+    let name1 = name_gen(linesize,num_lines,"A_bytes"); //standard file names
+    let name2 = name_gen(linesize,num_lines,"B_bytes");
+
+    println!("Generating files {name1} and {name2}...");
+    //generate files if they haven't been made already
+    if generate{
+        linewisedatagen::byte_version(linesize,num_lines,name1.as_str());
+        linewisedatagen::byte_version(linesize,num_lines,name2.as_str());
+    }
+    println!("adding the files");
+
+
+    let file1 = File::open(name1).unwrap(); //data to be added together
+    let file2 = File::open(name2).unwrap();
+
+
+
+
+
+    let result_file = File::create("result").unwrap(); //file to write the result to
+    let mut result_buf = BufWriter::new(result_file);
+    let now = Instant::now();
+
+    //divide the memory map into half, and spawn two tokio tasks to deal with each thread
+
+   // let joinhandel1 = spawn(get_result(&mmap1[..mmap1.len()/2],&mmap2[..mmap1.len()/2]));
+   // let joinhandel2 = spawn(get_result(&mmap1[mmap1.len()/2..],&mmap2[mmap1.len()/2..]));
+
+    let mut join_handels = Vec::new();
+    let num_spawns = 1000000;
+
+    for i in 0..num_spawns{
+        let mmap1 = unsafe { Mmap::map(&file1).unwrap() };
+        let mmap2 = unsafe { Mmap::map(&file2).unwrap() };
+
+        let start = i*linesize*num_lines/num_spawns;
+        let end = (i+1)*linesize*num_lines/num_spawns;
+        let joinhandel = spawn(get_result(mmap1,mmap2,start,end));
+        join_handels.push(joinhandel);
+    }
+
+
+    let mut result = Vec::new();
+
+    for join_handel in join_handels{
+        let mut vec = join_handel.await.unwrap();
+        result.append(&mut vec);
+
+    }
+    println!("computation took {:?}",now.elapsed().as_millis());
+
+
+
+
+    println!("computation took {:?}",now.elapsed().as_millis());
+    //write the result to a file
+    for result_element in result{
+        result_buf.write_all(&result_element.to_be_bytes()[..]).unwrap()
+    }
+    result_buf.flush();
+    println!("computation took {:?}",now.elapsed().as_millis());
+
+
+}
+
+async fn get_result( mmap1: Mmap, mmap2:Mmap,start:usize,end:usize) -> Vec<f64> {
+    let mmap1 = &mmap1[..];
+    let mmap2 = &mmap2[..];
+    let map_size = mmap1.len();
+    let result: Vec<f64> = (start..end).into_iter().map(|i| {
+        let start = i*8;
+            let end = start+8;
+            let e1 = (&mmap1[start..end]).try_get_f64().unwrap();
+            let e2 = (&mmap2[start..end]).try_get_f64().unwrap();
+            let addition = e1 + e2;
+            addition
+
+
+    })
+        .collect();
+
+   // let joinhandle1 = spawn((&mmap1[start..end]).try_get_f64().unwrap());
+  //  let joinhandle2 = spawn((&mmap2[start..end]).try_get_f64().unwrap());
+
+   // let addition = joinhandle1.await + joinhandle2.await;
+  //  addition
+    result
+}
 
 
 
@@ -250,6 +347,7 @@ fn cv_method(){
 
 #[tokio::main]
 async fn main() {
+    async_bytes_method(false).await
    // bytes_method()
  //   chunky_bytes_method()
 
