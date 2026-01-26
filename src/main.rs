@@ -66,12 +66,21 @@ fn pipline(hallucinate_data:bool){
     let now = Instant::now();
     let mut final_sum = 0.0;
     thread::scope(|s|{
+    let mut handles = Vec::new();
+
     for (chunk1,chunk2) in mmap1.chunks(chunk_size).zip(mmap2.chunks(chunk_size)) {
-            let result_chunk:f64 = s.spawn(move ||{process_chunk(chunk1,chunk2)}).join().unwrap();
-            final_sum += result_chunk;
+            let result_chunk = s.spawn(move ||{process_chunk(chunk1,chunk2)});
+            handles.push(result_chunk);
+
            // s.spawn(move||{write_chunk(&result_chunk,&result_buf)}).join().unwrap();
         }
+        for handel in handles{
+            let result = handel.join().unwrap();
+            final_sum += result;
+
+        }
     });
+
     println!("{final_sum}");
     result_buf.flush().unwrap();
     println!("computation took {:?}",now.elapsed().as_millis());
