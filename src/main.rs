@@ -1,13 +1,19 @@
 #![allow(warnings)]
-//gjh
-mod effects;
+
+mod telescope_objects;
 use bytes::Buf;
-mod data_cube_management;
+use serde_yaml;
 mod hallucinations;
+use serde_json;
 pub const b:usize = 8;
 use rayon::prelude::*;
 use csv::*;
 mod linewisedatagen;
+mod uvex_implementation;
+mod uvex_tma;
+mod uvex_fuv;
+mod uvex;
+mod effect_descriptions;
 
 use std::io::{BufRead, BufReader, BufWriter, Write};
 
@@ -20,17 +26,30 @@ use zerocopy::IntoBytes;
 
 use memmap2::Mmap;
 use std::fs::File;
-
+use crate::telescope_objects::{Effect, EffectName, TelescopeObjectName};
 
 pub const float_size:usize = 8;  //number of bytes in one float
 
 
 fn name_gen(linesize:usize,num_lines:usize,delinator:&str) -> String {
-    (num_lines.to_string() + "_lines_" + linesize.to_string().as_str()+ "_columns_" + delinator + ".txt").to_string()
+    (num_lines.to_string() + "_lines_" + linesize.to_string().as_str()+ "_columns_" + delinator).to_string()
 }
 
 
+
+
+
 fn main() {
+
+
+
+
+
+    let serialized = serde_yaml::to_string(&uvex).unwrap();
+    println!("{:?}",serialized);
+    let mut file = File::create("configuration.txt").unwrap();
+    write!(file, "{}", serialized).expect("failed to write JSON");
+
     pipline(false)
 }
 
@@ -38,8 +57,8 @@ fn main() {
 
 fn pipline(hallucinate_data:bool){
     pub const chunk_size:usize = 1024 * 1024;
-    pub const linesize:usize = 12000; //number of matrix columns
-    pub const num_lines:usize = 12000; //number of matrix rows
+    pub const linesize:usize = 4000; //number of matrix columns
+    pub const num_lines:usize = 40000; //number of matrix rows
 
     let name1 = name_gen(linesize,num_lines,"A_bytes"); //standard file names
     let name2 = name_gen(linesize,num_lines,"B_bytes");
@@ -68,12 +87,30 @@ fn pipline(hallucinate_data:bool){
     thread::scope(|s|{
     let mut handles = Vec::new();
 
+        /*
+
     for (chunk1,chunk2) in mmap1.chunks(chunk_size).zip(mmap2.chunks(chunk_size)) {
             let result_chunk = s.spawn(move ||{process_chunk(chunk1,chunk2)});
             handles.push(result_chunk);
 
            // s.spawn(move||{write_chunk(&result_chunk,&result_buf)}).join().unwrap();
         }
+        for handel in handles{
+            let result = handel.join().unwrap();
+            final_sum += result;
+
+        }
+
+         */
+        let mut chunks2 = mmap2.chunks_exact(chunk_size);
+        for chunk1 in mmap1.chunks_exact(chunk_size){
+            let chunk2 = chunks2.next().unwrap();
+            let result_chunk = s.spawn(move ||{process_chunk(chunk1,chunk2)});
+            handles.push(result_chunk);
+
+        }
+
+
         for handel in handles{
             let result = handel.join().unwrap();
             final_sum += result;
@@ -89,6 +126,8 @@ fn pipline(hallucinate_data:bool){
 fn process_chunk(chunk1:&[u8],chunk2:&[u8]) -> f64{
     let bytes1 = chunk1.chunks(float_size);
     let bytes2 = chunk2.chunks(float_size);
+
+
     let result_chunk: Vec<f64> = bytes1.zip(bytes2).map(|(mut byte1,mut byte2)|{
         let float1 = byte1.try_get_f64().unwrap();
         let float2 = byte2.try_get_f64().unwrap();
