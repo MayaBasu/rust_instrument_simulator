@@ -1,33 +1,20 @@
 #![allow(warnings)]
-
-mod telescope_objects;
+mod objects;
 use bytes::Buf;
 use serde_yaml;
-mod hallucinations;
-use serde_json;
-pub const b:usize = 8;
-use rayon::prelude::*;
-use csv::*;
-mod linewisedatagen;
-mod uvex_implementation;
-mod uvex_tma;
 mod uvex_fuv;
 mod uvex;
-mod effect_descriptions;
-
-use std::io::{BufRead, BufReader, BufWriter, Write};
-
+pub const b:usize = 8;
+use rayon::prelude::*;
+mod hallucinate;
+mod effects;
+mod instrument;
+use std::io::{BufRead, BufWriter, Write};
 use std::time::Instant;
-
-use ndarray::prelude::*;
 use std::thread;
 use zerocopy::IntoBytes;
-
-
 use memmap2::Mmap;
 use std::fs::File;
-use crate::telescope_objects::{Effect, EffectName, TelescopeObjectName};
-
 pub const float_size:usize = 8;  //number of bytes in one float
 
 
@@ -45,10 +32,7 @@ fn main() {
 
 
 
-    let serialized = serde_yaml::to_string(&uvex).unwrap();
-    println!("{:?}",serialized);
-    let mut file = File::create("configuration.txt").unwrap();
-    write!(file, "{}", serialized).expect("failed to write JSON");
+
 
     pipline(false)
 }
@@ -66,8 +50,8 @@ fn pipline(hallucinate_data:bool){
     println!("Generating files {name1} and {name2}...");
     //generate files if they haven't been made already
     if hallucinate_data {
-        linewisedatagen::byte_version(linesize,num_lines,name1.as_str());
-        linewisedatagen::byte_version(linesize,num_lines,name2.as_str());
+        hallucinate::byte_version(linesize, num_lines, name1.as_str());
+        hallucinate::byte_version(linesize, num_lines, name2.as_str());
     }
     println!("adding the files");
 
