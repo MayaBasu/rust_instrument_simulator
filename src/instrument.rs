@@ -1,6 +1,9 @@
 use std::fs::File;
 use serde::{Deserialize, Serialize};
 use crate::objects::TelescopeObject;
+use std::io::Write;
+use memmap2::Mmap;
+
 
 #[derive(Serialize, Deserialize)]
 pub struct Instrument{
@@ -41,6 +44,18 @@ impl Instrument{
         let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the instrument");
         let mut file = File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
+    }
+
+    pub fn run(&self, input_data_path:&str) {
+
+        let input_data = File::open(input_data_path).expect("Could not open the input data file");
+        let input_data = unsafe { Mmap::map(&input_data)};
+        let input_data = &input_data[..];
+        let input_data:&[f64] = bytemuck::cast_slice(input_data);
+
+
+
+
     }
 
 }

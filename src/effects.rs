@@ -54,7 +54,7 @@ pub const POINT_SPREAD_FUNCTION: EffectType = EffectType {
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug,Clone)]
 pub enum EffectAction {
     //EffectAction determines how the effects modify the data involved
     ComponentWiseMultiplicative,
@@ -67,7 +67,7 @@ pub enum EffectAction {
     //For reshaping the data, for example because of the slit mask
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct EffectType {
     //All the information describing a certain effect is packaged together into an Effect
     //The first two fields tell us how to read the data from the file, and the last tells us how to apply it
@@ -93,10 +93,10 @@ impl EffectType {
         This defaults to an active element. You can use Effect.turn_off() to turn off the effect so it isn't used.
          */
         Effect{
-            effect_label:effect_label.clone(),
-            effect_type: *self.clone(),
+            effect_label:effect_label.to_string(),
+            effect_type: self.clone(),
             active: true,
-            data_path: data_path.clone(),
+            data_path: data_path.to_string(),
         }
     }
 }
@@ -106,13 +106,13 @@ impl EffectType {
 pub struct Effect {
     //A particular instance of an effect of type EffectType, which acts upon the incoming light with an EffectAction
     //The EffectAction is specified via the Effect Type
-    pub effect_label: str,
+    pub effect_label: String,
     //unique label of this instance of the effect
     pub effect_type: EffectType,
     //The type of effect which this effect is (qe, dark current, read noise ect.)
     pub active: bool,
     //"active" toggles if this effect should be applied?
-    pub data_path:str,
+    pub data_path:String,
     //path to the data which describes this particular instance of the effect
 }
 

@@ -1,15 +1,9 @@
-use std::fs::{File, OpenOptions};
+use std::fs::{File};
 use std::io::{BufWriter, Write};
-use std::time::Instant;
 use rand::{Rng, rng};
 use csv::*;
-use csv::QuoteStyle;
 
 
-
-
-use std::{error::Error, io, process};
-use zerocopy::IntoBytes;
 
 pub fn example(line_size:usize, num_lines:usize, file_name:&str) -> Result<()> {
     let items_perLine = line_size;
@@ -76,4 +70,9 @@ pub fn byte_version(line_size:usize, num_lines:usize, file_name:&str) -> Result<
     // like any other record.
 
     Ok(())
+}
+
+
+pub(crate) fn name_gen(linesize:usize, num_lines:usize, delinator:&str) -> String {
+    (num_lines.to_string() + "_lines_" + linesize.to_string().as_str()+ "_columns_" + delinator).to_string()
 }

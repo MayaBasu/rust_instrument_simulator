@@ -1,10 +1,10 @@
-use crate::effects::{CONTAMINATION, Effect, REFLECTANCE};
+use crate::effects::*;
 use crate::objects::{TelescopeObject};
 
 
 
 pub fn initialize_uvex(yaml_file_path:&str){
-    
+
 }
 
 
