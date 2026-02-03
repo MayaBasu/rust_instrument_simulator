@@ -43,10 +43,7 @@ pub fn pipline(hallucinate_data:bool){
         .map(|(data_point1,data_point2)| data_point1+data_point2).collect();
 
     result_buf.write_all(bytemuck::cast_slice(&final_vec[..])).expect("failed to write result");
-
     println!("final sum is {:?} at time {:?}", final_vec.iter().sum::<f64>(), now.elapsed().as_millis());
-
-
 }
 
 

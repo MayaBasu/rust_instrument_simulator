@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::effects::{Effect, EffectType};
+use crate::effects::{Effect};
 
 #[derive(Serialize, Deserialize)]
 pub struct TelescopeObject{

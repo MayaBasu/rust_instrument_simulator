@@ -49,7 +49,7 @@ impl Instrument{
     pub fn run(&self, input_data_path:&str) {
 
         let input_data = File::open(input_data_path).expect("Could not open the input data file");
-        let input_data = unsafe { Mmap::map(&input_data)};
+        let input_data = unsafe { Mmap::map(&input_data)}.expect("failed to memory map the input data");
         let input_data = &input_data[..];
         let input_data:&[f64] = bytemuck::cast_slice(input_data);
 
