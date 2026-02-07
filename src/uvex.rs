@@ -1,11 +1,9 @@
 use crate::effects::*;
 use crate::objects::{TelescopeObject};
+use crate::instrument::Instrument;
 
 
 
-pub fn initialize_uvex(yaml_file_path:&str){
-
-}
 
 
 
@@ -33,5 +31,21 @@ pub fn initialize_tma(contamination_data_path:&str, reflectance_data_path:&str) 
                                   vec![m3_reflectivity,m3_contamination],
                                   vec![]);
     (m1,m2,m3)
+
+}
+
+pub fn initialize_uvex(){
+    let contamination_data_path = "4000_lines_4000_columns_A_bytes";
+    let reflectance_data_path = "4000_lines_4000_columns_C_bytes";
+    let (m1,m2,m3) = initialize_tma(contamination_data_path, reflectance_data_path);
+
+    let mut uvex = Instrument::new("uvex".to_string());
+    uvex.add_object(m1);
+    uvex.add_object(m2);
+    uvex.add_object(m3);
+
+    let found = uvex.rummage("m1".to_string());
+
+
 
 }

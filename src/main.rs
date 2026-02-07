@@ -7,7 +7,10 @@ mod instrument;
 
 
 fn main() {
-    simulator_engine::pipline(true)
+    //simulator_engine::pipline(true)
+    let uvex = uvex::initialize_uvex();
+
+
 }
 
 

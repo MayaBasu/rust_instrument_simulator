@@ -3,6 +3,26 @@ use serde::{Deserialize, Serialize};
 use crate::objects::TelescopeObject;
 use std::io::Write;
 use memmap2::Mmap;
+pub const spectral_resolution:usize  = 1000;
+
+pub struct point_source{
+    pub source_x:f64, //floats between 0 and 4000
+    pub source_y:f64,
+    pub luminosity:f64,
+}
+
+pub struct source_list{
+    pub sources: Vec<spectrum_group>
+}
+
+pub struct spectrum_group{
+    //this is a group of point source which share a given spectra
+    //It could be that there is one spectrum per point source, or that many sources share the same spectrum
+    pub spectrum: [f64;spectral_resolution],
+    pub point_sources: Vec<point_source>,
+}
+
+
 
 
 #[derive(Serialize, Deserialize)]
@@ -39,23 +59,67 @@ impl Instrument{
     pub fn set_entry_point(&mut self, entry_point:String){
         self.entry_point = entry_point
     }
-    pub fn write_to_YAML(&self, file_name:&str,) {
+    pub fn make_lightflow_matrix(&self){
+
+    }
+    pub fn write_to_yaml(&self, file_name:&str,) {
         println!("Writing configuration data for {:?} to {:?}", self.instrument_label, file_name);
         let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the instrument");
         let mut file = File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
 
-    pub fn run(&self, input_data_path:&str) {
+    pub fn run(&self, source_list: source_list) {
 
-        let input_data = File::open(input_data_path).expect("Could not open the input data file");
-        let input_data = unsafe { Mmap::map(&input_data)}.expect("failed to memory map the input data");
-        let input_data = &input_data[..];
-        let input_data:&[f64] = bytemuck::cast_slice(input_data);
+        /*
+        We want to take in a list of spectra, each of which has an associated set of locations at which it is at.
+        The source_list is a vector of spectrum groups
+        A spectrum group is a group of stars which all share a given spectrum
+        Each spectrum group contains an array which is the spectrum shared by all the point sources in the group
+        and it contains a list of point source locations of these point sources.
+        */
 
-
+        let initial_object = self.rummage(self.entry_point.clone());
+        println!("{:?}", initial_object)
 
 
     }
+    pub fn rummage(&self, object_name:String) -> &TelescopeObject{
+
+        /* rummage around in the telescope_objects list and look for an object called
+        object_name. If not exactly one object has this name, the function panics, because
+        this means the instrument was not set up correctly
+         */
+
+        let mut found_objects:Vec<&TelescopeObject> = Vec::new();
+
+        self.telescope_objects.iter().for_each(|object:&TelescopeObject|{
+            if object.unique_label == object_name{
+                found_objects.push(object)
+            }
+        });
+        if found_objects.len() ==0{
+            panic!("We rummaged for an object called {:?} but came up empty handed :( \
+            \n please make sure the instrument is set up correctly", object_name)
+        }
+        if found_objects.len() >1{
+            panic!("Oh no! There are more than one objects called {:?}! \
+            \n please make sure the instrument is set up correctly", object_name)
+        }
+        else{
+            return found_objects[0]
+        }
+    }
 
 }
+
+/*
+
+       let input_data = File::open(input_data_path).expect("Could not open the input data file");
+       let input_data = unsafe { Mmap::map(&input_data)}.expect("failed to memory map the input data");
+       let input_data = &input_data[..];
+       let input_data:&[f64] = bytemuck::cast_slice(input_data);
+
+        */
+
+

@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use crate::effects::{Effect};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TelescopeObject{
     pub unique_label: String,
     //This is a label specifying the exact instance of this effect.
