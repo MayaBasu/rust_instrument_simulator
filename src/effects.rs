@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::effects::EffectAction::*;
+use crate::instrument::{spatial_resolution, spectral_resolution};
 /*
 This file sets up the type of effects used in the configuration of the instrument.
 If you want any new effect which acts as point-wise multiplication, point-wise addition, or as a convolution kernel
@@ -12,18 +13,18 @@ If there is no spatial or spectral variation, we set spectral_extent or spatial_
  */
 
 pub const QUANTUM_EFFICIENCY: EffectType = EffectType {
-    spatial_extent: 4000,
-    spectral_extent: 1000,
+    spatial_extent: spatial_resolution,
+    spectral_extent: spectral_resolution,
     effect_action: ComponentWiseMultiplicative,
 };
 pub const DARK_CURRENT: EffectType = EffectType {
-    spatial_extent: 4000,
+    spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: ComponentWiseAddition,
 };
 pub const REFLECTANCE: EffectType = EffectType {
     spatial_extent: 1,
-    spectral_extent: 1000,
+    spectral_extent: spectral_resolution,
     effect_action: ComponentWiseMultiplicative,
 };
 pub const CONTAMINATION: EffectType = EffectType {
@@ -32,17 +33,17 @@ pub const CONTAMINATION: EffectType = EffectType {
     effect_action: ComponentWiseMultiplicative,
 };
 pub const SLIT: EffectType = EffectType {
-    spatial_extent: 4000,
+    spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: Reshape,
 };
 pub const READ_NOISE: EffectType = EffectType {
-    spatial_extent: 4000,
+    spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: ComponentWiseAddition,
 };
 pub const VINIETTING: EffectType = EffectType {
-    spatial_extent: 4000,
+    spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: ComponentWiseMultiplicative,
 };
