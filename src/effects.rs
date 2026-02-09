@@ -102,8 +102,7 @@ impl EffectType {
     }
 }
 
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct Effect {
     //A particular instance of an effect of type EffectType, which acts upon the incoming light with an EffectAction
     //The EffectAction is specified via the Effect Type
@@ -116,8 +115,6 @@ pub struct Effect {
     pub data_path:String,
     //path to the data which describes this particular instance of the effect
 }
-
-
 impl Effect{
     pub fn turn_off(&mut self){
         //turns off an effect
