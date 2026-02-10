@@ -8,7 +8,7 @@ use std::fs::File;
 use rand::distr::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
-pub const spectral_resolution:usize  = 1;
+pub const spectral_resolution:usize  = 1000;
 pub const spatial_resolution:usize  = 4000;
 
 #[derive(Serialize, Deserialize)]
@@ -28,10 +28,10 @@ pub struct Instrument{
 }
 
 impl Instrument{
-    pub fn new(instrument_label:String) -> Instrument{
+    pub fn new(instrument_label:&str, entry_point:&str) -> Instrument{
         Instrument{
-            instrument_label,
-            entry_point: "".to_string(),
+            instrument_label: instrument_label.to_string(),
+            entry_point: entry_point.to_string(),
             telescope_objects: vec![],
             measurement_points: vec![],
         }
@@ -39,11 +39,11 @@ impl Instrument{
     pub fn add_object(&mut self, object:TelescopeObject){
         self.telescope_objects.push(object)
     }
-    pub fn add_measurement_point(&mut self, measurement_point:String){
-        self.measurement_points.push(measurement_point)
+    pub fn add_measurement_point(&mut self, measurement_point:&str){
+        self.measurement_points.push(measurement_point.to_string())
     }
-    pub fn set_entry_point(&mut self, entry_point:String){
-        self.entry_point = entry_point
+    pub fn set_entry_point(&mut self, entry_point:&str){
+        self.entry_point = entry_point.to_string()
     }
     pub fn make_lightflow_matrix(&self){
 
@@ -88,12 +88,14 @@ impl Instrument{
             // bin1_spectral1, bin1_spectral2, bin1_spectral3, bin2_spectral1, bin2_spectral2, bin2_spectral3
             //we know how to read the file because of the effect type telling us the length of this outer and inner list
 
-
-            (0..num_sources).into_par_iter().for_each(|source_number|{
+            /*
+            (0..num_sources).intiter().for_each(|source_number|{
                 let point_source = &mut sources[source_number];
                 point_source.luminosity += data[point_source.bin];
 
             });
+
+             */
             println!("{:?}",sources)
         }
     }

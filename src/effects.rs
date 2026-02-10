@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Write;
 use serde::{Deserialize, Serialize};
 use crate::effects::EffectAction::*;
 use crate::instrument::{spatial_resolution, spectral_resolution};
@@ -119,6 +121,13 @@ impl Effect{
     pub fn turn_off(&mut self){
         //turns off an effect
         self.active = false
+    }
+
+    pub fn write_to_yaml(&self, file_name:&str,) {
+        println!("Writing configuration data for {:?} to {:?}", self.effect_label, file_name);
+        let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the effect");
+        let mut file = File::create(file_name).expect("Couldn't create the config file");
+        write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
 }
 
