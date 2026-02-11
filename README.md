@@ -33,11 +33,11 @@ Mirror one in the initial optical train however, only sends light to mirror 1. S
 These are a list of the Telescope objects after which we want to save data. 
 If you only want the final image you could list the detectors 
 (which would be particular TelescopeObjects with the effects such as quantum efficiency, dark current, and read noise) 
-or, you could add in more TelescopeObjects to track the propagation of the signal through the Instrument.
+or, you could add in more TelescopeObjects to this list to track the propagation of the signal through the Instrument.
 
 Points 1 and 2 allow us to propagate the signal through the telescope. 
 We start at the entry_point object, and then look at its recipient's list and send the signal to those TelescopeObjects, and so on. 
-Point 3 allows us to put "probes" into the instrument to see the signal wherever we choose/
+Point 3 allows us to put "probes" into the instrument to see the signal wherever we choose.
 
 # On the generic nature of the code
 
