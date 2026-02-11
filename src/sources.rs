@@ -1,7 +1,10 @@
+use std::fs::File;
+use std::io::Write;
 use rand::distr::{Distribution, Uniform};
+use serde::Serialize;
 use crate::instrument::{spatial_resolution, spectral_resolution};
 
-#[derive(Debug)]
+#[derive(Debug,Serialize)]
 pub struct point_source{
     pub source_x:f64, //floats between 0 and 1
     pub source_y:f64,
@@ -25,13 +28,18 @@ impl point_source{
     }
     fn calculate_grid_number(source_x:f64, source_y:f64)-> usize{
         let column = (source_x*spatial_resolution as f64).floor();
+       // println!("column is {column}");
         let row = (source_y*spatial_resolution as f64).floor();
-        let grid_number = spatial_resolution as f64*(row-1.0) + column;
+       // println!("row is {row}");
+        let grid_number = spatial_resolution as f64*(row) + column;
+       // println!("{}", grid_number);
         grid_number as usize
     }
+
+
 }
 
-#[derive(Debug)]
+#[derive(Debug,Serialize)]
 pub struct source_list{
     pub sources: Vec<point_source>,
     sorted: bool,
@@ -73,6 +81,14 @@ impl source_list{
         }).collect();
         source_list::new_from(sources)
 
+    }
+
+
+    pub fn write_to_yaml(&self, file_name:&str,) {
+        println!("Serializing point sources");
+        let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the sources");
+        let mut file = File::create(file_name).expect("Couldn't create the config file");
+        write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
 
 

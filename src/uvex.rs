@@ -1,6 +1,8 @@
+use std::fs::File;
 use crate::effects::*;
+use crate::hallucinate::hallucinate_bytes;
 use crate::objects::{TelescopeObject};
-use crate::instrument::Instrument;
+use crate::instrument::{Instrument, spatial_resolution, spectral_resolution};
 
 
 
@@ -38,11 +40,17 @@ pub fn initialize_tma(contamination_data_path1:&str, reflectance_data_path1:&str
 
 }
 
-pub fn initialize_uvex(){
+pub fn initialize_uvex() -> Instrument{
     let contamination_data_path = "contamination_data";
     let reflectance_data_path = "reflectance_data";
     let qe_data_path = "qe_data";
     let read_noise_data_path = "read_noise_data";
+
+    hallucinate_bytes(1,1,contamination_data_path,true).unwrap();
+    hallucinate_bytes(spectral_resolution,1,reflectance_data_path,true).unwrap();
+    hallucinate_bytes(spectral_resolution,spatial_resolution,qe_data_path,true).unwrap();
+    hallucinate_bytes(spectral_resolution,spatial_resolution,read_noise_data_path,true).unwrap();
+
 
     //for simplicity, we assume all three mirrors have the same contamination and reflectance
     let (m1,m2, mut m3) = initialize_tma(
@@ -66,7 +74,8 @@ pub fn initialize_uvex(){
     //we want to "measure" the instrument after the detector effects are applied:
     uvex.add_measurement_point("detector");
     //serialize the whole instrument to a YAML
-    uvex.write_to_yaml("uvex.yaml")
+    uvex.write_to_yaml("uvex.yaml");
+    uvex
 
 
 }

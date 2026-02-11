@@ -31,6 +31,8 @@ impl TelescopeObject {
         let mut file = File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
+
+    //TODO remove recipient/effect/turn off/on effect etc
 }
 
 

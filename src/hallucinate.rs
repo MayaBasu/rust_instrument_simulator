@@ -36,13 +36,27 @@ pub fn example(line_size:usize, num_lines:usize, file_name:&str) -> Result<()> {
 
     Ok(())
 }
-pub fn byte_version(line_size:usize, num_lines:usize, file_name:&str) -> Result<()> {
+pub fn hallucinate_bytes(spectral_resolution:usize, spatial_resolution:usize, file_name:&str,generate_human_readable_as_well:bool) -> Result<()> {
     println!("Generating data for {file_name}");
-    let items_perLine = line_size;
-    let num_lines = num_lines;
+    let human_readable_file_name = "human_readable".to_owned() + file_name;
+    let human_writer_result = Writer::from_path(&human_readable_file_name);
+    let mut human_writer = match human_writer_result {
+        Ok(writer) => writer,
+        Err(err) => return Err(err),
+    };
+
+    if generate_human_readable_as_well{
+        println!("Storing human readable version to {human_readable_file_name}");
+    };
+
+
+    let items_perLine = spectral_resolution;
+    let num_lines = spatial_resolution*spatial_resolution; //assume the data is square shaped
+    println!("{items_perLine} items per line and {num_lines} lines");
 
     let f1 = File::create(file_name).unwrap();
     let mut buf = BufWriter::new(f1);
+
 
 
     for line_num in 0..num_lines{
@@ -54,20 +68,12 @@ pub fn byte_version(line_size:usize, num_lines:usize, file_name:&str) -> Result<
             let value: f64 = rng().random_range(0.0..1.0);
 
             line.push(value.to_string());
-
             buf.write_all(&value.to_le_bytes()[..]).unwrap();
-
         }
-     //   println!("Line is {:?}",line);
+        let _ = human_writer.write_record(line);
         buf.flush().unwrap();
 
-        //writer.write_record(line);
-
     }
-
-
-    // When writing records without Serde, the header record is written just
-    // like any other record.
 
     Ok(())
 }
@@ -76,3 +82,5 @@ pub fn byte_version(line_size:usize, num_lines:usize, file_name:&str) -> Result<
 pub(crate) fn name_gen(linesize:usize, num_lines:usize, delinator:&str) -> String {
     (num_lines.to_string() + "_lines_" + linesize.to_string().as_str()+ "_columns_" + delinator).to_string()
 }
+
+//TODO convert from non human readable to human readable files

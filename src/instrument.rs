@@ -8,8 +8,8 @@ use std::fs::File;
 use rand::distr::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
-pub const spectral_resolution:usize  = 1000;
-pub const spatial_resolution:usize  = 4000;
+pub const spectral_resolution:usize  = 2;
+pub const spatial_resolution:usize  = 4;
 
 #[derive(Serialize, Deserialize)]
 pub struct Instrument{
@@ -45,7 +45,7 @@ impl Instrument{
     pub fn set_entry_point(&mut self, entry_point:&str){
         self.entry_point = entry_point.to_string()
     }
-    pub fn make_lightflow_matrix(&self){
+    pub fn make_lightflow_diagram(&self){
 
     }
     pub fn write_to_yaml(&self, file_name:&str,) {
@@ -65,6 +65,7 @@ impl Instrument{
         and it contains a list of point source locations of these point sources.
         */
         let sources = &mut source_list.sources;
+        println!("{:?}", sources);
         let num_sources = sources.len();
         let initial_object = self.rummage(self.entry_point.clone());
         let effects:Vec<Effect> = initial_object.effects.clone();
@@ -81,6 +82,7 @@ impl Instrument{
             let effect_action = effect_type.effect_action;
 
 
+
             //The file format will be a list of lists
             //the overlying list will be the pixel bins, "lined up" in order of each row read across
             //for each of these points, there will be a list of length spectral extent, which is the application to the spectra *at that point*
@@ -88,7 +90,12 @@ impl Instrument{
             // bin1_spectral1, bin1_spectral2, bin1_spectral3, bin2_spectral1, bin2_spectral2, bin2_spectral3
             //we know how to read the file because of the effect type telling us the length of this outer and inner list
 
+
+
             /*
+
+
+
             (0..num_sources).intiter().for_each(|source_number|{
                 let point_source = &mut sources[source_number];
                 point_source.luminosity += data[point_source.bin];
