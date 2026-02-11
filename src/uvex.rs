@@ -46,8 +46,8 @@ pub fn initialize_uvex() -> Instrument{
     let qe_data_path = "qe_data";
     let read_noise_data_path = "read_noise_data";
 
-    hallucinate_bytes(1,1,contamination_data_path,true).unwrap();
-    hallucinate_bytes(spectral_resolution,1,reflectance_data_path,true).unwrap();
+    hallucinate_bytes(spectral_resolution,spatial_resolution,contamination_data_path,true).unwrap();
+    hallucinate_bytes(spectral_resolution,spatial_resolution,reflectance_data_path,true).unwrap();
     hallucinate_bytes(spectral_resolution,spatial_resolution,qe_data_path,true).unwrap();
     hallucinate_bytes(spectral_resolution,spatial_resolution,read_noise_data_path,true).unwrap();
 

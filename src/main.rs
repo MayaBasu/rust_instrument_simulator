@@ -21,11 +21,11 @@ fn main() {
 
     let uvex = uvex::initialize_uvex();
     let spectrum = [1.0;spectral_resolution];
-    let mut source_list = source_list::new_random_point_source_field(1000, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, spectrum);
+    let mut source_list = source_list::new_random_point_source_field(3, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, spectrum);
     uvex.run(&mut source_list);
     source_list.write_to_yaml("sources");
 
-    println!("{:?}", source_list)
+   // println!("{:?}", source_list)
 }
 
 

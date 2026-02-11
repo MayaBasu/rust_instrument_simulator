@@ -24,14 +24,16 @@ pub const DARK_CURRENT: EffectType = EffectType {
     spectral_extent: 1,
     effect_action: ComponentWiseAddition,
 };
+//TODO change this back to normal
 pub const REFLECTANCE: EffectType = EffectType {
-    spatial_extent: 1,
+    spatial_extent: spatial_resolution,
     spectral_extent: spectral_resolution,
     effect_action: ComponentWiseMultiplicative,
 };
+//TODO change this back to normal
 pub const CONTAMINATION: EffectType = EffectType {
-    spatial_extent: 1,
-    spectral_extent: 1,
+    spatial_extent: spatial_resolution,
+    spectral_extent: spectral_resolution,
     effect_action: ComponentWiseMultiplicative,
 };
 pub const SLIT: EffectType = EffectType {
@@ -56,7 +58,8 @@ pub const POINT_SPREAD_FUNCTION: EffectType = EffectType {
 };
 
 
-
+//TODO integrate hallucinating/setting up/verifying data a part of the effects/objects, so that the dimentions are repeated in mul
+//tiple places
 #[derive(Serialize, Deserialize, Debug,Clone)]
 pub enum EffectAction {
     //EffectAction determines how the effects modify the data involved
@@ -72,6 +75,7 @@ pub enum EffectAction {
 
 #[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct EffectType {
+
     //All the information describing a certain effect is packaged together into an Effect
     //The first two fields tell us how to read the data from the file, and the last tells us how to apply it
     pub spatial_extent: usize,

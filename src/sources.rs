@@ -4,55 +4,56 @@ use rand::distr::{Distribution, Uniform};
 use serde::Serialize;
 use crate::instrument::{spatial_resolution, spectral_resolution};
 
-#[derive(Debug,Serialize)]
+
+
+
+#[derive(Debug,Serialize,Clone)]
 pub struct point_source{
     pub source_x:f64, //floats between 0 and 1
     pub source_y:f64,
     pub spectrum: [f64;spectral_resolution],
     pub luminosity: f64,
-    pub bin: usize,
 }
 
+#[derive(Debug,Serialize)]
+struct binned_point_source<'a>{
+    point_source: & 'a point_source,
+    bin: usize,
+}
 
 impl point_source{
-
     pub fn new(source_x:f64, source_y:f64, spectrum: [f64;spectral_resolution],luminosity:f64) -> point_source{
-        let grid_number = point_source::calculate_grid_number(source_x,source_y);
         point_source{
             source_x,
             source_y,
             spectrum,
             luminosity,
-            bin: grid_number,
         }
     }
-    fn calculate_grid_number(source_x:f64, source_y:f64)-> usize{
-        let column = (source_x*spatial_resolution as f64).floor();
+    fn get_bin(&self,num_spacial_bins:usize,)-> usize{
+        let column = (self.source_x*num_spacial_bins as f64).floor();
        // println!("column is {column}");
-        let row = (source_y*spatial_resolution as f64).floor();
+        let row = (self.source_y*num_spacial_bins as f64).floor();
        // println!("row is {row}");
-        let grid_number = spatial_resolution as f64*(row) + column;
+        let spatial_grid_number = num_spacial_bins as f64*(row) + column;
        // println!("{}", grid_number);
-        grid_number as usize
-    }
 
+        spatial_grid_number as usize
+    }
 
 }
 
 #[derive(Debug,Serialize)]
 pub struct source_list{
     pub sources: Vec<point_source>,
-    sorted: bool,
 }
 impl source_list{
-    pub fn new_from(mut sources:Vec<point_source>) -> source_list{
-        sources.sort_by(|a:&point_source, b:&point_source| b.bin.cmp(&a.bin));
+    pub fn new_from(mut sources:Vec<point_source> ) -> source_list{
+        //sources.sort_by(|a:&point_source, b:&point_source| b.bin.cmp(&a.bin));
         source_list{
             sources,
-            sorted: true,
         }
     }
-
     pub fn new_random_point_source_field(number_of_point_sources:usize,
                                          min_brightness: f64,
                                          max_brightness: f64,
@@ -60,7 +61,8 @@ impl source_list{
                                          max_x:f64,
                                          min_y: f64,
                                          max_y:f64,
-                                         spectrum:[f64;spectral_resolution]) -> source_list{
+                                         spectrum:[f64;spectral_resolution],
+                                        ) -> source_list{
         //Some checks to make sure that the incoming values are as expected
         for end_point in [min_brightness,max_brightness,min_x,max_x,min_y,max_y]{
             assert!((0.0 <= end_point) || (end_point <= 1.0),"{}: {} must be a float between 0 and 1",stringify!(end_point),end_point );
@@ -80,16 +82,33 @@ impl source_list{
             point_source::new(x, y, spectrum, luminosity)
         }).collect();
         source_list::new_from(sources)
-
     }
-
-
     pub fn write_to_yaml(&self, file_name:&str,) {
         println!("Serializing point sources");
         let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the sources");
         let mut file = File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
+    pub fn bin(&self, num_spatial_bins:usize) -> binned_source_list {
+        let mut binned_point_sources:Vec<binned_point_source> = Vec::with_capacity(self.sources.len());
+        for point_source in &self.sources{
+            let bin = point_source.get_bin(num_spatial_bins);
+            let binned_point_source = binned_point_source{ point_source: &point_source, bin };
+            binned_point_sources.push(binned_point_source)
+        }
+        binned_point_sources.sort_by_key(|a| a.bin);
+        binned_source_list{binned_point_sources,num_spatial_bins}
 
-
+    }
 }
+
+
+#[derive(Debug,Serialize)]
+pub struct binned_source_list<'a>{
+    binned_point_sources: Vec<binned_point_source<'a>>,
+    pub num_spatial_bins: usize,
+}
+
+
+
+

@@ -65,45 +65,52 @@ impl Instrument{
         and it contains a list of point source locations of these point sources.
         */
         let sources = &mut source_list.sources;
-        println!("{:?}", sources);
-        let num_sources = sources.len();
-        let initial_object = self.rummage(self.entry_point.clone());
-        let effects:Vec<Effect> = initial_object.effects.clone();
-        for effect in effects{
-            let effect_type = effect.effect_type;
-            println!("Applying effect: {:?}",effect_type);
-            let data = File::open(effect.data_path).expect("Could not open the data file for the effect");
-            let data = unsafe { Mmap::map(&data)}.expect("failed to memory map the effect data");
-            let data = &data[..];
-            let data:&[f64] = bytemuck::cast_slice(data);
-
-            let spatial_extent = effect_type.spatial_extent;
-            let spectral_extent = effect_type.spectral_extent;
-            let effect_action = effect_type.effect_action;
+        let mut current_object = self.rummage(self.entry_point.clone());
+        let mut terminated:bool = false;
 
 
-
-            //The file format will be a list of lists
-            //the overlying list will be the pixel bins, "lined up" in order of each row read across
-            //for each of these points, there will be a list of length spectral extent, which is the application to the spectra *at that point*
-            // For example, if the spectral resolution was 3 and the spatial resolution was two, then the data would look like:
-            // bin1_spectral1, bin1_spectral2, bin1_spectral3, bin2_spectral1, bin2_spectral2, bin2_spectral3
-            //we know how to read the file because of the effect type telling us the length of this outer and inner list
+        while terminated ==false{
+            let effects:Vec<Effect> = current_object.effects.clone();
+            let recipient_names = current_object.recipients.clone();
 
 
+            for effect in effects{
+                let effect_type = effect.effect_type;
+                dbg!(effect_type.clone());
 
-            /*
+                let data = File::open(effect.data_path).expect("Could not open the data file for the effect");
+                let data = unsafe { Mmap::map(&data)}.expect("failed to memory map the effect data");
+                let data = &data[..];
+                let data:&[f64] = bytemuck::cast_slice(data);
 
+                let spatial_extent = effect_type.spatial_extent;
+                let spectral_extent = effect_type.spectral_extent;
+                let effect_action = effect_type.effect_action;
 
+                println!("{:?}",data);
+                let mut data_spectrally_chunked = data.chunks_exact(spectral_extent);
 
-            (0..num_sources).intiter().for_each(|source_number|{
-                let point_source = &mut sources[source_number];
-                point_source.luminosity += data[point_source.bin];
+                for effect_bin in (0..spatial_extent*spatial_extent){
+                    println!("effect bin {effect_bin}");
+                    println!("{:?}",data_spectrally_chunked.next().unwrap())
+                }
 
-            });
+                //now we want to grid up the point sources by the spatial_extent of the effect:
 
-             */
-            println!("{:?}",sources)
+                let binned_sources = source_list.bin(spatial_extent);
+                dbg!(binned_sources);
+
+                /*The file format will be a list of lists
+                the overlying list will be the pixel bins, "lined up" in order of each row read across
+                for each of these points, there will be a list of length spectral extent, which is the application to the spectra *at that point*
+                 For example, if the spectral resolution was 3 and the spatial resolution was two, then the data would look like:
+                 bin1_spectral1, bin1_spectral2, bin1_spectral3, bin2_spectral1, bin2_spectral2, bin2_spectral3
+                we know how to read the file because of the effect type telling us the length of this outer and inner list
+
+                 */
+            }
+            terminated = true;
+
         }
     }
     pub fn rummage(&self, object_name:String) -> &TelescopeObject{
