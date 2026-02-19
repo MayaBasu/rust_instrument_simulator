@@ -1,5 +1,5 @@
 use crate::objects::TelescopeObject;
-use crate::effects::Effect;
+use crate::effects::{Effect, EffectAction};
 use crate::sources::{point_source, source_list};
 use std::io::Write;
 use memmap2::Mmap;
@@ -67,10 +67,9 @@ impl Instrument{
         Each spectrum group contains an array which is the spectrum shared by all the point sources in the group
         and it contains a list of point source locations of these point sources.
         */
-        let sources = &mut source_list.sources;
+
         let mut current_object = self.rummage(self.entry_point.clone());
         let mut terminated:bool = false;
-
 
         while terminated ==false{
             let effects:Vec<Effect> = current_object.effects.clone();
@@ -81,27 +80,63 @@ impl Instrument{
                 let effect_type = effect.effect_type;
                 dbg!(effect_type.clone());
 
-                let data = File::open(effect.data_path).expect("Could not open the data file for the effect");
+                let path = "/Users/mayabasu/RustroverProjects/image_simulator_outline/python_plotting/fits_data";
+
+                let data = File::open(path).expect("Could not open the data file for the effect");
                 let data = unsafe { Mmap::map(&data)}.expect("failed to memory map the effect data");
                 let data = &data[..];
-                let data: &[f64] = bytemuck::cast_slice(data);
+                let data: &[f32] = bytemuck::cast_slice(data);
+                println!("akelfjeo;awihjfw{:?}",data[1955]);
 
                 let effect_action = effect_type.effect_action;
+                let effect_spatial = effect_type.spatial_extent;
+                let effect_spectral = effect_type.spectral_extent;
 
 
-                let spectral = match effect_type.spectral_extent {
-                    spectral_resolution => true,
-                    1 => false,
-                    _ => panic!("Unsupported spectral extent")
-                };
 
-                let spatial = match effect_type.spatial_extent {
-                    spatial_resolution => true,
-                    1 => false,
-                    _ => panic!("Unsupported spatial extent")
-                };
+                for mut source in source_list.sources{
+                    //First, determine the 'bin' of the source according to how finely grained
+                    //the data is - if there is no spatial variation then everything is in bin 1
 
-                fits::open_fits(fits_path);
+                    let source_bin = source.get_bin(effect_spatial);
+                    if effect_spatial == 1 {
+
+                        //if there is no spectral resolution, then each source bin maps exactly to the index of the data
+                        let resulting_source_list: source_list = match effect_action {
+                            EffectAction::ComponentWiseMultiplicative => {
+                                source.luminosity *= data[source_bin];
+                                source_list::new_from(
+                                    vec![source]
+                                )
+                            }
+                            EffectAction::ComponentWiseAddition => {
+                                source.luminosity += data[source_bin];
+                                source_list::new_from(
+                                    vec![source]
+                                )
+                            }
+                            EffectAction::ConvolutionKernel => {
+                                let source_list = source_list::new_empty(effect_spatial);
+                                // need to figure out the conversion of pixles in the fits file to my 0-1 x axis
+                                let conversion = 1; //TODO
+                                for kernel_pixel_x in 0..spatial_resolution{
+                                    for kernel_pixel_y in 0..spatial_resolution{
+                                       // let kernelified_source =
+                                        //source_list.add_source()
+
+                                    }
+                                }
+
+                            }
+                            EffectAction::Reshape => {}
+                        };
+
+                    }
+
+                }
+
+
+
 
 
 

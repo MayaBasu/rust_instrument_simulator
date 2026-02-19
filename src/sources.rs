@@ -22,7 +22,10 @@ impl point_source{
             luminosity,
         }
     }
-    fn get_bin(&self,num_spacial_bins:usize,)-> usize{
+    pub(crate) fn get_bin(&self, num_spacial_bins:usize) -> usize{
+        if num_spacial_bins ==1{
+            return 1
+        }
         let column = (self.source_x*num_spacial_bins as f64).floor();
        // println!("column is {column}");
         let row = (self.source_y*num_spacial_bins as f64).floor();
@@ -43,6 +46,15 @@ impl source_list{
         source_list{
             sources,
         }
+    }
+    pub fn new_empty(capacity:usize) -> source_list{
+        source_list{
+            sources: Vec::with_capacity(capacity)
+        }
+    }
+    pub fn add_source(&mut self, source:point_source) -> self {
+        self.sources.push(source)
+
     }
     pub fn new_random_point_source_field(number_of_point_sources:usize,
                                          min_brightness: f64,
