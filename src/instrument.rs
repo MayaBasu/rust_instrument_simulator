@@ -29,7 +29,7 @@ pub struct Instrument{
     //If you just want the output at the detectors, then this would be the labels of the detectors.
     //However, if you want to see the intermediate evolution of the data, you can put in any object you want.
 }
-
+//incorrect commit message
 impl Instrument{
     pub fn new(instrument_label:&str, entry_point:&str) -> Instrument{
         Instrument{
