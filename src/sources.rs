@@ -5,21 +5,12 @@ use serde::Serialize;
 use crate::instrument::{spatial_resolution, spectral_resolution};
 
 
-
-
 #[derive(Debug,Serialize,Clone)]
 pub struct point_source{
     pub source_x:f64, //floats between 0 and 1
     pub source_y:f64,
     pub spectrum: [f64;spectral_resolution],
     pub luminosity: f64,
-}
-
-
-#[derive(Debug,Serialize)]
-pub struct bin<'a>{
-    pub bin_number: usize,
-    pub contents: Vec<& 'a point_source>
 }
 
 impl point_source{
@@ -41,7 +32,6 @@ impl point_source{
 
         spatial_grid_number as usize
     }
-
 }
 
 #[derive(Debug,Serialize)]
@@ -90,41 +80,6 @@ impl source_list{
         let mut file = File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
-    pub fn bin(&self, num_spatial_bins:usize) -> binned_source_list {
-        let mut binned_source_list = binned_source_list::from_point_sources(self.sources.clone(),num_spatial_bins);
-        dbg!(&binned_source_list);
-        binned_source_list
-
-    }
-}
-
-
-#[derive(Debug,Serialize)]
-pub struct binned_source_list<'a>{
-    pub bins: Vec<bin<'a>>,
-    pub num_spatial_bins: usize,
-}
-
-impl binned_source_list<'_>{
-    pub fn from_point_sources<'a>( point_sources:Vec<point_source>,num_spatial_bins:usize) -> binned_source_list<'a>{
-        let mut bins: Vec<bin> = Vec::new();
-        for point_source in point_sources{
-
-            let bin_number = point_source.get_bin(num_spatial_bins);
-
-            match bins.iter().find(|bin| bin.bin_number ==bin_number) {
-                Some(bin) => bin.contents.push(&point_source),
-                None => {let new_bin = bin{ bin_number, contents: vec![&point_source] };
-                    bins.push(new_bin)
-                }
-            }
-        }
-        binned_source_list{ bins, num_spatial_bins }
-    }
-
 
 }
-
-
-
 
