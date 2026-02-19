@@ -29,7 +29,6 @@ impl point_source{
        // println!("row is {row}");
         let spatial_grid_number = num_spacial_bins as f64*(row) + column;
        // println!("{}", grid_number);
-
         spatial_grid_number as usize
     }
 }
@@ -63,8 +62,8 @@ impl source_list{
         assert!(min_y <= max_y,"min_y must be less than or equal to max_y");
 
         let luminosities = Uniform::new(min_brightness,max_brightness).expect("Could not generate random luminosities in the given range");
-        let x_positions = Uniform::new(min_x,max_x).expect("Could not generate random luminosities in the given range");
-        let y_positions = Uniform::new(min_y,max_y).expect("Could not generate random luminosities in the given range");
+        let x_positions = Uniform::new(min_x,max_x).expect("Could not generate random x positions in the given range");
+        let y_positions = Uniform::new(min_y,max_y).expect("Could not generate random y positions in the given range");
         let mut rng = rand::rng();
         let sources: Vec<point_source> = (0..number_of_point_sources).map(|_x|{
             let x = x_positions.sample(&mut rng);

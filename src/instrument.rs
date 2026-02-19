@@ -8,6 +8,9 @@ use std::fs::File;
 use rand::distr::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
+use crate::fits;
+use crate::fits::fits_path;
+
 pub const spectral_resolution:usize  = 2;
 pub const spatial_resolution:usize  = 4;
 
@@ -81,24 +84,26 @@ impl Instrument{
                 let data = File::open(effect.data_path).expect("Could not open the data file for the effect");
                 let data = unsafe { Mmap::map(&data)}.expect("failed to memory map the effect data");
                 let data = &data[..];
-                let data:&[f64] = bytemuck::cast_slice(data);
+                let data: &[f64] = bytemuck::cast_slice(data);
 
-                let spatial_extent = effect_type.spatial_extent;
-                let spectral_extent = effect_type.spectral_extent;
                 let effect_action = effect_type.effect_action;
 
-                println!("{:?}",data);
-                let mut data_spectrally_chunked = data.chunks_exact(spectral_extent);
 
-                for effect_bin in (0..spatial_extent*spatial_extent){
-                    println!("effect bin {effect_bin}");
-                    println!("{:?}",data_spectrally_chunked.next().unwrap())
-                }
+                let spectral = match effect_type.spectral_extent {
+                    spectral_resolution => true,
+                    1 => false,
+                    _ => panic!("Unsupported spectral extent")
+                };
 
-                //now we want to grid up the point sources by the spatial_extent of the effect:
+                let spatial = match effect_type.spatial_extent {
+                    spatial_resolution => true,
+                    1 => false,
+                    _ => panic!("Unsupported spatial extent")
+                };
 
-                let binned_sources = source_list.bin(spatial_extent);
-                dbg!(binned_sources);
+                fits::open_fits(fits_path);
+
+
 
                 /*The file format will be a list of lists
                 the overlying list will be the pixel bins, "lined up" in order of each row read across

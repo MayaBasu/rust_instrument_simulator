@@ -10,8 +10,7 @@ mod hallucinate;
 mod effects;
 mod instrument;
 mod sources;
-
-
+mod fits;
 
 fn main() {
 
