@@ -15,10 +15,11 @@ pub struct point_source{
     pub luminosity: f64,
 }
 
+
 #[derive(Debug,Serialize)]
-struct binned_point_source<'a>{
-    point_source: & 'a point_source,
-    bin: usize,
+pub struct bin<'a>{
+    pub bin_number: usize,
+    pub contents: Vec<& 'a point_source>
 }
 
 impl point_source{
@@ -90,14 +91,9 @@ impl source_list{
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
     pub fn bin(&self, num_spatial_bins:usize) -> binned_source_list {
-        let mut binned_point_sources:Vec<binned_point_source> = Vec::with_capacity(self.sources.len());
-        for point_source in &self.sources{
-            let bin = point_source.get_bin(num_spatial_bins);
-            let binned_point_source = binned_point_source{ point_source: &point_source, bin };
-            binned_point_sources.push(binned_point_source)
-        }
-        binned_point_sources.sort_by_key(|a| a.bin);
-        binned_source_list{binned_point_sources,num_spatial_bins}
+        let mut binned_source_list = binned_source_list::from_point_sources(self.sources.clone(),num_spatial_bins);
+        dbg!(&binned_source_list);
+        binned_source_list
 
     }
 }
@@ -105,8 +101,28 @@ impl source_list{
 
 #[derive(Debug,Serialize)]
 pub struct binned_source_list<'a>{
-    binned_point_sources: Vec<binned_point_source<'a>>,
+    pub bins: Vec<bin<'a>>,
     pub num_spatial_bins: usize,
+}
+
+impl binned_source_list<'_>{
+    pub fn from_point_sources<'a>( point_sources:Vec<point_source>,num_spatial_bins:usize) -> binned_source_list<'a>{
+        let mut bins: Vec<bin> = Vec::new();
+        for point_source in point_sources{
+
+            let bin_number = point_source.get_bin(num_spatial_bins);
+
+            match bins.iter().find(|bin| bin.bin_number ==bin_number) {
+                Some(bin) => bin.contents.push(&point_source),
+                None => {let new_bin = bin{ bin_number, contents: vec![&point_source] };
+                    bins.push(new_bin)
+                }
+            }
+        }
+        binned_source_list{ bins, num_spatial_bins }
+    }
+
+
 }
 
 
