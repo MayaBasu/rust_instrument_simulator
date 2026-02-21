@@ -9,6 +9,8 @@ use rand::distr::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
 
+use byteorder::ByteOrder;
+
 
 use crate::fits2;
 use crate::fits2::{fits_path, open_fits};
@@ -89,8 +91,10 @@ impl Instrument{
                 let fits = File::open(fits_path).expect("PSF can't be opened :((");
                 let fits = unsafe { Mmap::map(&fits)}.expect("couldn't mmap fits");
                 let fits_data = &fits[2880..];
-                let fits = byteorder::BigEndian::read_f32(fits_data);
-                println!("{:?}",fits[1955]);
+                let mut fits_result: [f32; 0] = [];
+                println!("fit's data {:?}",fits_data);
+               // byteorder::BigEndian::read_f32_into(fits_data, &mut fits_result);
+               // println!("{:?}",fits_result[1955]);
 
                 /*
 
