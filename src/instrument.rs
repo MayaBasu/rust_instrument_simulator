@@ -91,10 +91,10 @@ impl Instrument{
                 let fits = File::open(fits_path).expect("PSF can't be opened :((");
                 let fits = unsafe { Mmap::map(&fits)}.expect("couldn't mmap fits");
                 let fits_data = &fits[2880..];
-                let mut fits_result: [f32; 0] = [];
-                println!("fit's data {:?}",fits_data);
-               // byteorder::BigEndian::read_f32_into(fits_data, &mut fits_result);
-               // println!("{:?}",fits_result[1955]);
+                let mut fits_result: [f32; 17280/4] = [0.0;17280/4];
+                println!("fit's data {:?}",fits_data.len());
+                byteorder::BigEndian::read_f32_into(fits_data, &mut fits_result);
+                println!("{:?}",fits_result[1955]);
 
                 /*
 
