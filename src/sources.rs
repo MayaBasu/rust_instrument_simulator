@@ -52,8 +52,9 @@ impl source_list{
             sources: Vec::with_capacity(capacity)
         }
     }
-    pub fn add_source(&mut self, source:point_source) -> self {
-        self.sources.push(source)
+    pub fn add_source(&mut self, source:point_source) -> &mut source_list {
+        self.sources.push(source);
+        self
 
     }
     pub fn new_random_point_source_field(number_of_point_sources:usize,

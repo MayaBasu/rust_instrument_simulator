@@ -1,3 +1,5 @@
+import sys
+
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,8 +8,12 @@ file = fits.open("/Users/mayabasu/RustroverProjects/image_simulator_outline/pyth
 
 
 data= file[0].data
+print(file[0].header)
 
 plt.imshow(data)
+
+np.set_printoptions(threshold=sys.maxsize)
+print(data)
 
 data = np.array(data).flatten()
 print(np.argmax(data))

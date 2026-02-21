@@ -91,15 +91,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
-name = "fitrs"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f6ad8c9d4e2bd7b2e535a7c72bfd61f43945e79e8937caff19a061b55347134"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -122,9 +113,9 @@ name = "image_simulator_outline"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "byteorder",
  "bytes",
  "csv",
- "fitrs",
  "memmap2",
  "ndarray",
  "rand",

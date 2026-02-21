@@ -8,8 +8,12 @@ use std::fs::File;
 use rand::distr::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
-use crate::fits;
-use crate::fits::fits_path;
+
+
+use crate::fits2;
+use crate::fits2::{fits_path, open_fits};
+
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 pub const spectral_resolution:usize  = 2;
 pub const spatial_resolution:usize  = 4;
@@ -81,6 +85,39 @@ impl Instrument{
                 dbg!(effect_type.clone());
 
                 let path = "/Users/mayabasu/RustroverProjects/image_simulator_outline/python_plotting/fits_data";
+                open_fits(fits_path);
+                let fits = File::open(fits_path).expect("PSF can't be opened :((");
+                let fits = unsafe { Mmap::map(&fits)}.expect("couldn't mmap fits");
+                let fits_data = &fits[2880..];
+                let fits = byteorder::BigEndian::read_f32(fits_data);
+                println!("{:?}",fits[1955]);
+
+                /*
+
+                let fits_data: [u8;17280] = fits_data.try_into().expect("kjane");
+                let chunks = fits_data.as_chunks::<4>();
+                let mut i = 0;
+                for chunk in chunks.0.into_iter(){
+
+                    let point = f32::from_be_bytes(*chunk);
+
+                    if i ==1955{
+                        println!("point is {:?}",point);
+                    }
+                    i +=1
+                }
+                println!("lksjelfjh {:?}",fits_data.len());
+                println!("should be {:?}", (64*64*4));
+
+                 */
+
+
+
+                //let fits_data_cast: &[f32] = f64::from_be_bytes(fits_data);
+             //   println!("value os {:?}",fits_data_cast);
+
+
+
 
                 let data = File::open(path).expect("Could not open the data file for the effect");
                 let data = unsafe { Mmap::map(&data)}.expect("failed to memory map the effect data");
@@ -94,7 +131,7 @@ impl Instrument{
 
 
 
-                for mut source in source_list.sources{
+                for mut source in source_list.sources.clone(){
                     //First, determine the 'bin' of the source according to how finely grained
                     //the data is - if there is no spatial variation then everything is in bin 1
 
@@ -102,21 +139,23 @@ impl Instrument{
                     if effect_spatial == 1 {
 
                         //if there is no spectral resolution, then each source bin maps exactly to the index of the data
-                        let resulting_source_list: source_list = match effect_action {
+                        let resulting_source_list = match effect_action {
                             EffectAction::ComponentWiseMultiplicative => {
-                                source.luminosity *= data[source_bin];
-                                source_list::new_from(
+                                source.luminosity *= data[source_bin] as f64 ;
+                                let mut list = source_list::new_from(
                                     vec![source]
-                                )
+                                );
+                                list
                             }
                             EffectAction::ComponentWiseAddition => {
-                                source.luminosity += data[source_bin];
-                                source_list::new_from(
+                                source.luminosity += data[source_bin] as f64 ;
+                                let mut list = source_list::new_from(
                                     vec![source]
-                                )
+                                );
+                                list
                             }
                             EffectAction::ConvolutionKernel => {
-                                let source_list = source_list::new_empty(effect_spatial);
+                                let mut source_list = source_list::new_empty(effect_spatial);
                                 // need to figure out the conversion of pixles in the fits file to my 0-1 x axis
                                 let conversion = 1; //TODO
                                 for kernel_pixel_x in 0..spatial_resolution{
@@ -124,11 +163,15 @@ impl Instrument{
                                        // let kernelified_source =
                                         //source_list.add_source()
 
+
                                     }
                                 }
+                                source_list
 
                             }
-                            EffectAction::Reshape => {}
+                            EffectAction::Reshape => {
+                                let mut source_list = source_list::new_empty(effect_spatial);
+                                source_list}
                         };
 
                     }
