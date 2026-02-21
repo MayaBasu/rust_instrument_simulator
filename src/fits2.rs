@@ -1,5 +1,5 @@
-use crate::fits;
-use crate::fits::{Fits, FitsData, FitsDataArray};
+
+use uvex_fitrs::{Fits, FitsData, FitsDataArray};
 
 
 pub const fits_path: &str = "/Users/mayabasu/RustroverProjects/image_simulator_outline/python_plotting/UVEX_FUV_PSF_1um_F001 1.fits";

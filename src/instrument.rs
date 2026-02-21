@@ -8,12 +8,12 @@ use std::fs::File;
 use rand::distr::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
-
-
 use crate::fits2;
 use crate::fits2::{fits_path, open_fits};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+
+
 
 pub const spectral_resolution:usize  = 2;
 pub const spatial_resolution:usize  = 4;

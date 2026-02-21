@@ -12,9 +12,7 @@ mod instrument;
 mod sources;
 mod fits2;
 
-mod types;
-mod fits;
-mod scifmt;
+
 
 fn main() {
 

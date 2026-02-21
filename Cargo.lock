@@ -123,6 +123,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "uvex-fitrs",
  "zerocopy",
 ]
 
@@ -403,6 +404,15 @@ name = "unsafe-libyaml"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
+
+[[package]]
+name = "uvex-fitrs"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01061a47e8f700d17b04d22425fda0dafa3b3f407c4534ea11dd6b1996331f4f"
+dependencies = [
+ "byteorder",
+]
 
 [[package]]
 name = "wasip2"
