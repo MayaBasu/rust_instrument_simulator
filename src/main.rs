@@ -1,9 +1,9 @@
-use crate::details::UVEX_Details;
-use crate::effects::QUANTUM_EFFICIENCY;
+use std::fs::File;
+use crate::uvex_details::UVEX_Details;
+
 use crate::hallucinate::{hallucinate_bytes, name_gen};
-use crate::instrument::{spatial_resolution, spectral_resolution};
 use crate::sources::source_list;
-use crate::uvex::{initialize_tma};
+
 
 mod objects;
 mod uvex;
@@ -13,14 +13,15 @@ mod instrument;
 mod sources;
 mod fits2;
 mod fits_readers;
-mod details;
+mod uvex_details;
 
 fn main() {
     let details = UVEX_Details::blank();
-    details.write_to_yaml("details");
-    let details = UVEX_Details::read_from_yaml("details");
+    details.write_to_yaml("configuration/details");
+    let details = UVEX_Details::read_from_yaml("configuration/details");
     println!("{:?}",details);
-    let uvex = uvex::initialize_uvex(details);
+    let uvex = uvex::initialize_uvex(details,"configuration/uvex");
+
 
 
 

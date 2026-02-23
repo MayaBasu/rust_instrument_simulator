@@ -1,6 +1,6 @@
 use crate::objects::TelescopeObject;
 use crate::instrument::Instrument;
-use crate::details::{FUV_DETAILS, NUV_DETAILS, SPECTROGRAPH_DETAILS, TMA_Details, UVEX_Details};
+use crate::uvex_details::{FUV_DETAILS, NUV_DETAILS, SPECTROGRAPH_DETAILS, TMA_Details, UVEX_Details};
 use crate::effects::*;
 
 
@@ -113,7 +113,7 @@ pub fn initialize_spectrograph(spectrograph_details: SPECTROGRAPH_DETAILS) -> (T
 
 }
 
-pub fn initialize_uvex(uvex_details: UVEX_Details) -> Instrument{
+pub fn initialize_uvex(uvex_details: UVEX_Details,path:&str) -> Instrument{
 
 
     let (m1, m2, mut m3) = initialize_tma(uvex_details.tma_details);
@@ -133,60 +133,17 @@ pub fn initialize_uvex(uvex_details: UVEX_Details) -> Instrument{
 
     let mut uvex = Instrument{
         instrument_label: "uvex".to_string(),
-
         entry_point: m1.unique_label.to_string(),
-
         measurement_points: vec![fuv_detector.unique_label.clone(),nuv_detector.unique_label.clone(),image_plane.unique_label.clone()],
-
         telescope_objects: vec![m1,m2,m3,
                                 fuv_dichroic,fuv_detector,
                                 nuv_dichroic,nuv_detector,
                                 slit, spectrograph_m1, grating, spectrograph_m3, image_plane],
 
     };
-
-    uvex.write_to_yaml("uvex.yaml");
+    uvex.write_to_yaml(path);
     uvex
-
 
 }
 
 
-/*
-let (m1, m2, mut m3) = initialize_tma(
-        ud.tma_m1_contamination.1.to_string(), ud.tma_m1_reflectance.1,
-        ud.tma_m2_contamination.1.to_string(), ud.tma_m2_reflectance.1,
-        ud.tma_m3_contamination.1.to_string(), ud.tma_m3_reflectance.1);
-
-
-    let (fuv_dichroic, fuv_detector) = initialize_fuv_channel(ud.fuv_and_nuv_vinietting.1.clone(),
-                                                              ud.fuv_psf_directory.1,
-                                                              ud.fuv_qe.1,
-                                                              ud.fuv_dead_pixels.1,
-                                                              ud.fuv_read_noise.1,
-                                                              ud.fuv_dark_current.1,
-                                                              ud.dichroic_fuv_transmission.1);
-
-    let (nuv_dichroic, nuv_detector) = initialize_nuv_channel(ud.fuv_and_nuv_vinietting.1.clone(),
-                                                              ud.nuv_psf_directory.1,
-                                                              ud.nuv_qe.1,
-                                                              ud.nuv_dead_pixels.1,
-                                                              ud.nuv_read_noise.1,
-                                                              ud.nuv_dark_current.1,
-                                                              ud.dichroic_nuv_transmission.1);
-
-    let (slit, spectrograph_m1, grating, spectrograph_m3, image_plane) = initialize_spectrograph(
-        ud.slit_mask.1,
-        ud.slit_psf_directory,
-        ud.spectrograph_m1_reflectance,
-        ud.spectrograph_m1_contamination,
-        ud.spectrograph_grating_reflectance,
-        ud.spectrograph_grating_contamination,
-        ud.spectrograph_m3_reflectance,
-        ud.spectrograph_m3_contamination,
-        ud.image_plane_qe,
-        ud.image_plane_dead_pixels,
-        ud.image_plane_read_noise,
-        ud.image_plane_dark_current,
-    );
- */

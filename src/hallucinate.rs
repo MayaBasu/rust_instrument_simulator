@@ -3,39 +3,6 @@ use std::io::{BufWriter, Write};
 use rand::{Rng, rng};
 use csv::*;
 
-
-
-pub fn example(line_size:usize, num_lines:usize, file_name:&str) -> Result<()> {
-    let items_per_line = line_size;
-    let num_lines = num_lines;
-
-    let writer_result = Writer::from_path(file_name);
-
-    let mut writer = match writer_result {
-        Ok(writer) => writer,
-        Err(err) => return Err(err),
-    };
-
-
-    for line_num in 0..num_lines{
-        if line_num%1000 ==0{
-            println!("Generating line {line_num}");
-        }
-        let mut line: Vec<String> = Vec::with_capacity(items_per_line);
-        for _item in 0..items_per_line {
-            line.push(rng().random_range(0.0..1.0).to_string())
-        }
-
-        let _ = writer.write_record(line);
-
-    }
-
-
-    // When writing records without Serde, the header record is written just
-    // like any other record.
-
-    Ok(())
-}
 pub fn hallucinate_bytes(spectral_resolution:usize, spatial_resolution:usize, file_name:&str,generate_human_readable_as_well:bool) -> Result<()> {
     println!("Generating data for {file_name}");
     let human_readable_file_name = "human_readable".to_owned() + file_name;
