@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
 
 use byteorder::ByteOrder;
-
+//making the uvex instrument is done after we are given details
+//what are we not changing: number of object, order of objects, effects per object
+//data files, on or off,
 
 use crate::fits2;
 use crate::fits2::{fits_path, open_fits};

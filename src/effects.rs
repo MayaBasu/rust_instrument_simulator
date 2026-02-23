@@ -91,9 +91,9 @@ pub struct EffectType {
     pub effect_action: EffectAction,
 }
 
-
+//TODO fix from default assuming active
 impl EffectType {
-    pub fn new(&self, effect_label: &str, data_path: &str) -> Effect{
+    pub fn new(&self, effect_label: &str, data_path: String) -> Effect{
         /*returns an instance of an Effect of type EffectType.
         So QUANTUM_EFFICIENCY.new("best_ever_qe", "data/qe")
         returns an Effect of EffectType QUANTUM_EFFICIENCY with name "best_ever_qe" and data path "data/qe"
