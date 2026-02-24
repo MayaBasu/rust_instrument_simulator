@@ -3,7 +3,7 @@ use crate::effects::{Effect};
 use std::io::{Read, Write};
 use std::fs;
 
-#[derive(Serialize,Debug,Deserialize)]
+#[derive(Serialize, Debug, Deserialize, Clone, Copy)]
 pub enum Use{
     on,
     off,
@@ -83,57 +83,59 @@ pub struct UVEX_Details{
 impl UVEX_Details {
     pub fn default(path:&str) -> UVEX_Details {
 
+        let d = Use::off;
+
         let tma_details = TMA_Details {
-            spacecraft_pointing: (Use::on, 1.0),  //width of the gaussian to be convolved with the image
-            tma_m1_reflectance: (Use::on, "data/tma/tma_m1_reflectance".to_string()),
-            tma_m1_contamination: (Use::on, 2.0),
+            spacecraft_pointing: (d, 1.0),  //width of the gaussian to be convolved with the image
+            tma_m1_reflectance: (d, "data/tma/tma_m1_reflectance".to_string()),
+            tma_m1_contamination: (d, 2.0),
 
-            tma_m2_reflectance: (Use::on, "data/tma/tma_m1_reflectance".to_string()),
-            tma_m2_contamination: (Use::on, 2.0),
+            tma_m2_reflectance: (d, "data/tma/tma_m1_reflectance".to_string()),
+            tma_m2_contamination: (d, 2.0),
 
-            tma_m3_reflectance: (Use::on, "data/tma/tma_m1_reflectance".to_string()),
-            tma_m3_contamination: (Use::on, 2.0),
+            tma_m3_reflectance: (d, "data/tma/tma_m1_reflectance".to_string()),
+            tma_m3_contamination: (d, 2.0),
         };
 
         let fuv_details = FUV_DETAILS {
-            fuv_psf_directory: (Use::on, "data/fuv/fuv_psf_directory".to_string()), //directory of FITS files
-            fuv_qe: (Use::on, "data/fuv/fuv_qe".to_string()),
-            fuv_dead_pixels: (Use::on, "data/fuv/fuv_dead_pixels".to_string()),
-            fuv_read_noise: (Use::on, "data/fuv/fuv_read_noise".to_string()),
-            fuv_dark_current: (Use::on, "data/fuv/fuv_dark_current".to_string()),
-            dichroic_fuv_transmission: (Use::on, "data/fuv/dichroic_fuv_transmission".to_string()),
-            fuv_vinietting: (Use::on, "data/fuv/path_to_fuv_and_nuv_vinietting".to_string()),
+            fuv_psf_directory: (d, "data/fuv/fuv_psf_directory".to_string()), //directory of FITS files
+            fuv_qe: (d, "data/fuv/fuv_qe".to_string()),
+            fuv_dead_pixels: (d, "data/fuv/fuv_dead_pixels".to_string()),
+            fuv_read_noise: (d, "data/fuv/fuv_read_noise".to_string()),
+            fuv_dark_current: (d, "data/fuv/fuv_dark_current".to_string()),
+            dichroic_fuv_transmission: (d, "data/fuv/dichroic_fuv_transmission".to_string()),
+            fuv_vinietting: (d, "data/fuv/path_to_fuv_and_nuv_vinietting".to_string()),
         };
 
         let nuv_details = NUV_DETAILS {
-            nuv_psf_directory: (Use::on, "data/nuv/nuv_psf_directory".to_string()), //directory of FITS files
-            nuv_qe: (Use::on, "data/nuv/nuv_qe".to_string()),
-            nuv_dead_pixels: (Use::on, "data/nuv/nuv_dead_pixels".to_string()),
-            nuv_read_noise: (Use::on, "data/nuv/nuv_read_noise".to_string()),
-            nuv_dark_current: (Use::on, "data/nuv/nuv_dark_current".to_string()),
-            dichroic_nuv_transmission: (Use::on, "data/nuv/dichroic_fuv_transmission".to_string()),
-            nuv_vinietting: (Use::on, "data/nuv/path_to_fuv_and_nuv_vinietting".to_string())
+            nuv_psf_directory: (d, "data/nuv/nuv_psf_directory".to_string()), //directory of FITS files
+            nuv_qe: (d, "data/nuv/nuv_qe".to_string()),
+            nuv_dead_pixels: (d, "data/nuv/nuv_dead_pixels".to_string()),
+            nuv_read_noise: (d, "data/nuv/nuv_read_noise".to_string()),
+            nuv_dark_current: (d, "data/nuv/nuv_dark_current".to_string()),
+            dichroic_nuv_transmission: (d, "data/nuv/dichroic_fuv_transmission".to_string()),
+            nuv_vinietting: (d, "data/nuv/path_to_fuv_and_nuv_vinietting".to_string())
         };
 
         let spectrograph_details = SPECTROGRAPH_DETAILS{
 
-            slit_psf_directory: (Use::on,"data/spectrograph/path_to_slit_psf_directory".to_string()), //directory of FITS files
-            slit_mask: (Use::on, "data/spectrograph/slit_mask".to_string()),
+            slit_psf_directory: (d,"data/spectrograph/path_to_slit_psf_directory".to_string()), //directory of FITS files
+            slit_mask: (d, "data/spectrograph/slit_mask".to_string()),
 
-            spectrograph_m1_reflectance: (Use::on,"data/spectrograph/spectrograph_m1_reflectance".to_string()),
-            spectrograph_m1_contamination: (Use::on,2.0),
+            spectrograph_m1_reflectance: (d,"data/spectrograph/spectrograph_m1_reflectance".to_string()),
+            spectrograph_m1_contamination: (d,2.0),
 
 
-            spectrograph_grating_reflectance: (Use::on,"data/spectrograph/spectrograph_grating_reflectance".to_string()),
-            spectrograph_grating_contamination: (Use::on,2.0),
+            spectrograph_grating_reflectance: (d,"data/spectrograph/spectrograph_grating_reflectance".to_string()),
+            spectrograph_grating_contamination: (d,2.0),
 
-            spectrograph_m3_reflectance: (Use::on,"data/spectrograph/spectrograph_m3_reflectance".to_string()),
-            spectrograph_m3_contamination: (Use::on,2.0),
+            spectrograph_m3_reflectance: (d,"data/spectrograph/spectrograph_m3_reflectance".to_string()),
+            spectrograph_m3_contamination: (d,2.0),
 
-            image_plane_qe: (Use::on,"data/spectrograph/image_plane_qe".to_string()),
-            image_plane_dead_pixels: (Use::on,"data/spectrograph/image_plane_dead_pixels".to_string()),
-            image_plane_read_noise: (Use::on,"data/spectrograph/image_plane_read_noise".to_string()),
-            image_plane_dark_current: (Use::on,"data/spectrograph/image_plane_dark_current".to_string()),
+            image_plane_qe: (d,"data/spectrograph/image_plane_qe".to_string()),
+            image_plane_dead_pixels: (d,"data/spectrograph/image_plane_dead_pixels".to_string()),
+            image_plane_read_noise: (d,"data/spectrograph/image_plane_read_noise".to_string()),
+            image_plane_dark_current: (d,"data/spectrograph/image_plane_dark_current".to_string()),
 
         };
 

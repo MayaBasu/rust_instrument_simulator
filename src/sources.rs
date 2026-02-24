@@ -67,12 +67,16 @@ impl source_list{
                                          spectrum:[f64;spectral_resolution],
                                         ) -> source_list{
         //Some checks to make sure that the incoming values are as expected
+        //TODO Fix these checks to work with f64 values
+        /*
         for end_point in [min_brightness,max_brightness,min_x,max_x,min_y,max_y]{
             assert!((0.0 <= end_point) || (end_point <= 1.0),"{}: {} must be a float between 0 and 1",stringify!(end_point),end_point );
         }
         assert!(min_brightness <= max_brightness,"min_brightness must be less than or equal to max_brightness");
         assert!(min_x <= max_x,"min_x must be less than or equal to max_x");
         assert!(min_y <= max_y,"min_y must be less than or equal to max_y");
+
+         */
 
         let luminosities = Uniform::new(min_brightness,max_brightness).expect("Could not generate random luminosities in the given range");
         let x_positions = Uniform::new(min_x,max_x).expect("Could not generate random x positions in the given range");

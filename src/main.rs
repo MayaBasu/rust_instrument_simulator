@@ -1,6 +1,8 @@
 use uvex_fitrs::*;
 use crate::fits2::fits_path;
+use crate::instrument::spectral_resolution;
 use crate::psf_fits_reader::open_psf_fits;
+use crate::sources::{point_source, source_list};
 use crate::uvex_details::UVEX_Details;
 mod objects;
 mod uvex;
@@ -14,7 +16,9 @@ mod uvex_details;
 mod psf_fits_reader;
 
 fn main() {
-    open_psf_fits(fits_path);
+    let details = UVEX_Details::default("configuration/details");
+
+
 }
 /*
 
