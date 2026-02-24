@@ -1,10 +1,7 @@
-use std::fs::File;
+use uvex_fitrs::*;
+use crate::fits2::fits_path;
+use crate::psf_fits_reader::open_psf_fits;
 use crate::uvex_details::UVEX_Details;
-
-use crate::hallucinate::{hallucinate_bytes, name_gen};
-use crate::sources::source_list;
-
-
 mod objects;
 mod uvex;
 mod hallucinate;
@@ -14,17 +11,11 @@ mod sources;
 mod fits2;
 mod fits_readers;
 mod uvex_details;
+mod psf_fits_reader;
 
 fn main() {
-    let details = UVEX_Details::blank();
-    details.write_to_yaml("configuration/details");
-    let details = UVEX_Details::read_from_yaml("configuration/details");
-    println!("{:?}",details);
-    let uvex = uvex::initialize_uvex(details,"configuration/uvex");
-
-
-
-
+    open_psf_fits(fits_path);
+}
 /*
 
 
@@ -36,6 +27,6 @@ fn main() {
  */
 
    // println!("{:?}", source_list)
-}
+
 
 

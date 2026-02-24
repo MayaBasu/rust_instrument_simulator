@@ -113,7 +113,8 @@ pub fn initialize_spectrograph(spectrograph_details: SPECTROGRAPH_DETAILS) -> (T
 
 }
 
-pub fn initialize_uvex(uvex_details: UVEX_Details,path:&str) -> Instrument{
+pub fn initialize_uvex(path:&str) -> Instrument{
+    let uvex_details = UVEX_Details::read_from_yaml(path);
 
 
     let (m1, m2, mut m3) = initialize_tma(uvex_details.tma_details);

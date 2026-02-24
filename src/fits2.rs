@@ -12,11 +12,11 @@ pub fn open_fits(path:&str)  -> u64{
 
     let Some(hdu) = fits.iter().next() else { panic!("alsiejof")};
 
-    //println!("header length is {:?}", hdu.header.len());
+
     let data = match hdu.read_data() {
         FitsData::FloatingPoint32(FitsDataArray { shape, data }) => {
-            //println!("{:?}", shape);
-            //println!("{:?}", data);
+            println!("{:?}", shape);
+            println!("{:?}", data);
             data
         }
         _ => { panic!("couldnt get data")}

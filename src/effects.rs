@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 use serde::{Deserialize, Serialize};
+use crate::effects::DataType::*;
 use crate::effects::EffectAction::*;
 use crate::instrument::{spatial_resolution, spectral_resolution};
 /*
@@ -18,43 +19,51 @@ pub const QUANTUM_EFFICIENCY: EffectType = EffectType {
     spatial_extent: spatial_resolution,
     spectral_extent: spectral_resolution,
     effect_action: ComponentWiseMultiplicative,
+    data_type: FITS,
 };
 pub const DARK_CURRENT: EffectType = EffectType {
     spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: ComponentWiseAddition,
+    data_type:FITS,
 };
 //TODO change this back to normal
 pub const REFLECTANCE: EffectType = EffectType {
     spatial_extent: spatial_resolution,
     spectral_extent: spectral_resolution,
     effect_action: ComponentWiseMultiplicative,
+    data_type: FITS,
 };
 //TODO change this back to normal
 pub const CONTAMINATION: EffectType = EffectType {
     spatial_extent: spatial_resolution,
     spectral_extent: spectral_resolution,
     effect_action: ComponentWiseMultiplicative,
+    data_type: Float,
 };
 pub const SLIT: EffectType = EffectType {
     spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: Reshape,
+    data_type: FITS,
 };
 pub const READ_NOISE: EffectType = EffectType {
     spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: ComponentWiseAddition,
+    data_type: FITS,
 };
 pub const VINIETTING: EffectType = EffectType {
     spatial_extent: spatial_resolution,
     spectral_extent: 1,
     effect_action: ComponentWiseMultiplicative,
+    data_type: FITS,
 };
 pub const POINT_SPREAD_FUNCTION: EffectType = EffectType {
     spatial_extent: 10,
     spectral_extent: 1,
     effect_action: ConvolutionKernel,
+    data_type: FITSDirectory,
 };
 
 
@@ -73,6 +82,14 @@ pub enum EffectAction {
     //For reshaping the data, for example because of the slit mask
 }
 
+#[derive(Debug,Serialize,Deserialize,Clone)]
+pub enum DataType {
+    FITS,
+    FITSDirectory,
+    Float,
+    Function,
+}
+
 #[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct EffectType {
 
@@ -89,6 +106,8 @@ pub struct EffectType {
     //If this is a spatially independent transmission curve
     // which is sampled over 1000 frequency samples then the spectral extent is 1000
     pub effect_action: EffectAction,
+
+    pub data_type: DataType,
 }
 
 //TODO fix from default assuming active

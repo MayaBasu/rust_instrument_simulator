@@ -1,5 +1,3 @@
-
-use std::fs::File;
 use serde::{Serialize, Deserialize};
 use crate::effects::{Effect};
 use std::io::{Read, Write};
@@ -15,7 +13,6 @@ pub enum Use{
 pub struct TMA_Details { //struct which contains the details for a uvex instance
     pub spacecraft_pointing: (Use, f64),  //width of the gaussian to be convolved with the image
 
-
     pub tma_m1_reflectance: (Use, String),
     pub tma_m1_contamination: (Use, f64),
 
@@ -28,37 +25,40 @@ pub struct TMA_Details { //struct which contains the details for a uvex instance
 }
 #[derive(Serialize,Debug,Deserialize)]
 pub struct FUV_DETAILS {
+    pub dichroic_fuv_transmission: (Use, String),
+
     pub fuv_psf_directory: (Use, String), //directory of FITS files
+
     pub fuv_qe: (Use, String),
-    pub fuv_dead_pixels: (Use, String),
     pub fuv_read_noise: (Use, String),
     pub fuv_dark_current: (Use, String),
-    pub dichroic_fuv_transmission: (Use, String),
     pub fuv_vinietting: (Use,String), //path to FITS
+
+    pub fuv_dead_pixels: (Use, String),
 
 }
 #[derive(Serialize,Debug,Deserialize)]
 pub struct NUV_DETAILS {
+    pub dichroic_nuv_transmission: (Use, String),
+
     pub nuv_psf_directory: (Use, String), //directory of FITS files
+
     pub nuv_qe: (Use, String),
-    pub nuv_dead_pixels: (Use, String),
     pub nuv_read_noise: (Use, String),
     pub nuv_dark_current: (Use, String),
-    pub dichroic_nuv_transmission: (Use, String),
     pub nuv_vinietting: (Use,String), //path to FITS
+
+    pub nuv_dead_pixels: (Use, String),
 }
 
 #[derive(Serialize,Debug,Deserialize)]
 pub struct SPECTROGRAPH_DETAILS{
 
-
     pub slit_psf_directory: (Use,String), //directory of FITS files
     pub slit_mask: (Use,String),
 
-
     pub spectrograph_m1_reflectance: (Use,String),
     pub spectrograph_m1_contamination: (Use,f64),
-
 
     pub spectrograph_grating_reflectance: (Use,String),
     pub spectrograph_grating_contamination: (Use,f64),
@@ -66,12 +66,10 @@ pub struct SPECTROGRAPH_DETAILS{
     pub spectrograph_m3_reflectance: (Use,String),
     pub spectrograph_m3_contamination: (Use,f64),
 
-
     pub image_plane_qe: (Use,String),
     pub image_plane_dead_pixels: (Use,String),
     pub image_plane_read_noise: (Use,String),
     pub image_plane_dark_current: (Use,String),
-
 
 }
 #[derive(Serialize,Debug,Deserialize)]
@@ -83,7 +81,7 @@ pub struct UVEX_Details{
 }
 
 impl UVEX_Details {
-    pub fn blank()-> UVEX_Details {
+    pub fn default(path:&str) -> UVEX_Details {
 
         let tma_details = TMA_Details {
             spacecraft_pointing: (Use::on, 1.0),  //width of the gaussian to be convolved with the image
@@ -145,13 +143,15 @@ impl UVEX_Details {
             nuv_details,
             spectrograph_details,
         };
+
+        uvex.write_to_yaml(path);
         uvex
     }
 
     pub fn write_to_yaml(&self, file_name:&str,) {
         println!("Writing uvex details to {:?}", file_name);
         let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the object");
-        let mut file = File::create(file_name).expect("Couldn't create the config file");
+        let mut file = fs::File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
 

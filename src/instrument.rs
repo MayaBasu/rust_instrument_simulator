@@ -21,7 +21,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 pub const spectral_resolution:usize  = 2;
 pub const spatial_resolution:usize  = 4;
-
+//TODO I want this to serialize as m1 -> m2 ....
 #[derive(Serialize, Deserialize)]
 pub struct Instrument{
     pub instrument_label: String,
