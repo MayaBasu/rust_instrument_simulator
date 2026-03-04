@@ -3,19 +3,25 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np
 
-file = fits.open("/Users/mayabasu/RustroverProjects/image_simulator_outline/python_plotting/UVEX_FUV_PSF_1um_F001 1.fits")
 
-data = file[0].data
-print(data)
+for n in [35]:
+    path = "/Users/mayabasu/RustroverProjects/image_simulator_outline/data/demo/demo_psf/FUV PSF/UVEX_FUV_PSF_1um_F"+ f'{n:03}'+".fits"
+
+    file = fits.open(path)
+    data = file[0].data
+    #print(data)
+
+    header = file[0].header
+    print(header["XPOS"])
 
 
-np.set_printoptions(threshold=sys.maxsize)
-data = np.array(data).flatten()
+    #np.set_printoptions(threshold=sys.maxsize)
+    #data = np.array(data).flatten()
 
-print(file[0].header)
-print(np.argmax(data))
-print(data[1955])
 
-plt.imshow(data)
-plt.show()
+    #print(np.argmax(data))
+    #print(data[1955])
+
+    plt.imshow(data)
+    plt.show()
 

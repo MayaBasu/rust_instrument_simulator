@@ -2,7 +2,9 @@
 use uvex_fitrs::{Fits, FitsData, FitsDataArray};
 
 
-pub const fits_path: &str = "/Users/mayabasu/RustroverProjects/image_simulator_outline/python_plotting/UVEX_FUV_PSF_1um_F001 1.fits";
+pub const fits_path: &str = "/Users/mayabasu/RustroverProjects/image_simulator_outline/data/demo/demo_psf/FUV PSF/UVEX_FUV_PSF_1um_F001.fits";
+pub const fits_path2: &str = "/Users/mayabasu/RustroverProjects/image_simulator_outline/data/demo/demo_psf/FUV PSF/UVEX_FUV_PSF_1um_F002.fits";
+    //"data/demo/demo_psf/FUV PSF/UVEX_FUV_PSF_1um_F001.fits";
 
 pub fn open_fits(path:&str)  -> u64{
     println!("OPENING GGG");
@@ -16,13 +18,14 @@ pub fn open_fits(path:&str)  -> u64{
     let data = match hdu.read_data() {
         FitsData::FloatingPoint32(FitsDataArray { shape, data }) => {
             println!("{:?}", shape);
-            println!("{:?}", data);
+            //println!("{:?}", data);
             data
         }
         _ => { panic!("couldnt get data")}
     };
     let start = hdu.data_start;
-    println!("data start is at {start}");
+    println!("data start is at {:?}",hdu);
+
     //println!("{:?}", data);
 
     start
