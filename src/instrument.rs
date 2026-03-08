@@ -23,7 +23,12 @@ pub const spectral_resolution:usize  = 2;
 pub const spatial_resolution:usize  = 4;
 //TODO I want this to serialize as m1 -> m2 ....
 #[derive(Serialize, Deserialize)]
+
 pub struct Instrument{
+
+    pub fov_x: f64,
+    pub fov_y: f64,
+
     pub instrument_label: String,
     //label incase you want to configure several instruments and then compare them
     pub entry_point: String,

@@ -1,22 +1,89 @@
 use uvex_fitrs::*;
 
 
+pub struct DataFrame {
+    pub x_bins: usize, //e.g 64 for a psf
+    pub y_bins: usize,
+    pub lambda_bins: usize,
+    pub x_offset_deg: f64, //position in FOV in degrees
+    pub y_offset_deg: f64,
+    pub inverse_scale: f64, //4,000 for qe, dark current, anything samples per pixel but this is 40,000 for the PSF files
+    pub rotation: f64, //angle of rotation between this rigid array and the 0-1 backdrop
+    pub data: Vec<f32>,
+    pub path: String,
+}
+
+//TODO if the PSF coordinate systems are rotated wrt each other then in which is the PSF straight
+
+impl DataFrame{
+    pub fn new_psf_from_fits(
+        x_resolution: usize,
+        y_resolution: usize,
+        scale: f64, //TODO check the psf scales
+        path: String,
+    ) -> DataFrame{
+
+        println!("Loading PSF file {:?} into a DataFrame",path.clone());
+        let fits = Fits::open(path.clone()).expect("Failed to open PSF FITS file");
+        let primary_hdu= fits.iter().next().expect("Couldn't find primary HDU");
+
+        let (data,shape) = match primary_hdu.read_data() {
+            FitsData::FloatingPoint32(FitsDataArray { shape, data }) => (data,shape),
+            _ => panic!("Could not unpack PSF data")
+        };
+        assert_eq!(shape[0], x_resolution,"Diva down!"); //check that the data is the expected size
+        assert_eq!(shape[1], y_resolution,"Diva down!");
+
+        let xpos = match primary_hdu.value("XFLD").expect("failed to get xpos") {
+            HeaderValue::RealFloatingNumber(xpos)=> xpos,
+            _ => panic!("could not unpack xpos")
+        };
+        let ypos = match primary_hdu.value("YFLD").expect("failed to get xpos") {
+            HeaderValue::RealFloatingNumber(ypos)=> ypos,
+            _ => panic!("could not unpack ypos")
+        };
+
+        DataFrame{
+            x_bins: x_resolution,
+            y_bins: y_resolution,
+            lambda_bins:1,
+            x_offset_deg:xpos,
+            y_offset_deg:ypos,
+            inverse_scale: scale,
+            rotation:0,
+            data,
+            path,
+        }
+    }
+}
+
+
+
 #[derive(Debug)]
 pub struct Grid {
-    x_start: f64, //location of the left most box center
-    x_end: f64, //location of the right most box center
-    x_num: usize, //how many box centers there are total
-    y_start: f64,
-    y_end: f64,
-    y_num: usize,
-    precision: usize,
+    pub x_resolution: usize,
+    pub y_resolution: usize,
+    pub lambda_resolution: usize,
+    pub x_offset: f64,
+    pub y_offset: f64,
+    pub scale: f64, //1 if the grid fills the
+    pub rotation: f64, //angle of rotation between this rigid array and the 0-1 backdrop
+    pub data: Vec<f32>,
+    pub path: String,
+    pub x_start: f64, //location of the left most box center
+    pub x_end: f64, //location of the right most box center
+    pub x_num: usize, //how many box centers there are total
+    pub y_start: f64,
+    pub y_end: f64,
+    pub y_num: usize,
+    pub precision: usize,
 }
 
 
 
 
 impl Grid{
-    pub fn pretty_print(&self){
+    pub fn get_positions(&self) -> (Vec<f64>,Vec<f64>){
         if self.x_num == 1{
             panic!("Diva Down! x_num must be at least 2");
         }
@@ -34,8 +101,10 @@ impl Grid{
 
         println!("The x positions are {:?}",x_pos);
         println!("y pos are {:?}",y_pos);
-
+        (x_pos,y_pos)
     }
+
+
 
 }
 #[derive(Debug)]

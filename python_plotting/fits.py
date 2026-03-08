@@ -9,9 +9,10 @@ for n in [35]:
 
     file = fits.open(path)
     data = file[0].data
-    #print(data)
+
 
     header = file[0].header
+    print(header)
     print(header["XPOS"])
 
 
