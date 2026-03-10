@@ -21,7 +21,7 @@ impl DataFrame{
         path: PathBuf,
     ) -> DataFrame{
 
-        //println!("Loading PSF file {:?} into a DataFrame",path.clone());
+        println!("Loading PSF file {:?} into a DataFrame",path.clone());
         let fits = Fits::open(path.clone()).expect("Failed to open PSF FITS file");
         let primary_hdu= fits.iter().next().expect("Couldn't find primary HDU");
 

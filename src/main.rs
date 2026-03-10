@@ -30,7 +30,8 @@ fn main() {
 
     //let details = Demo_Details::default("configuration/demo_details");
     //let demo = initialize_demo(details,"configuration/demo.yaml");
-    let grid = Grid::load_fuv(fuv_path);
+    let mut grid = Grid::load_fuv(fuv_path);
+    grid.validate();
     //println!("{:?}",grid.corner());
     //println!("{:?}",grid.size());
     //grid.pretty_print()
