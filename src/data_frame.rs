@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use uvex_fitrs::{Fits, FitsData, FitsDataArray, HeaderValue};
 use crate::grid::Grid;
@@ -10,17 +11,17 @@ pub struct DataFrame {
     pub y_pos: f64,
     pub inverse_scale: f64, //4,000 for qe, dark current, anything samples per pixel but this is 40,000 for the PSF files
     pub data: Vec<f32>,
-    pub path: String,
+    pub path: PathBuf,
 }
 impl DataFrame{
-    pub fn new_psf_from_fits(
+    pub fn frame_psf(
         x_pixels: usize,
         y_pixels: usize,
         inverse_scale: f64, //TODO check the psf scales
-        path: String,
+        path: PathBuf,
     ) -> DataFrame{
 
-        println!("Loading PSF file {:?} into a DataFrame",path.clone());
+        //println!("Loading PSF file {:?} into a DataFrame",path.clone());
         let fits = Fits::open(path.clone()).expect("Failed to open PSF FITS file");
         let primary_hdu= fits.iter().next().expect("Couldn't find primary HDU");
 

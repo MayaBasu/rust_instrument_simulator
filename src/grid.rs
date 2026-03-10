@@ -10,6 +10,7 @@ pub struct Grid {
     pub rotation: f64,
     pub data: Vec<(usize, DataFrame)>,
     pub snap_precision: f64,
+    valid: bool,
 }
 
 
@@ -30,6 +31,7 @@ impl Grid{
             rotation,
             data: vec![],
             snap_precision,
+            valid: false
         }
 
     }
@@ -44,6 +46,7 @@ impl Grid{
             rotation:0.0,
             data: vec![],
             snap_precision:0.01,
+            valid: false,
         }
 
     }
@@ -56,13 +59,13 @@ impl Grid{
         for path in paths {
             counter += 1;
             let path = path.unwrap().path();
-            println!("Loading file {}", path.display())
-
-
+            //println!("Loading file {}", path.display());
+            let frame = DataFrame::frame_psf(64,64,40000.0,path);
+            let frame_index = fuv_grid.snap(frame.x_pos,frame.y_pos);
+            fuv_grid.data.push((frame_index,frame))
         }
         assert_eq!(counter,fuv_grid.num_points());
-        println!("Found {counter} files total");
-
+        println!("Loaded {counter} files into an FUV Grid Struct from {directory_path}");
     }
 
     pub fn corner(&self)->(f64,f64){
@@ -129,6 +132,47 @@ impl Grid{
             }
             println!("\n")
         }
+    }
+    pub fn validate(&mut self) -> bool {
+        //check to make sure there are the same number of data frames as there are grid points
+        if self.data.len() != self.num_points(){
+            println!("Validation failed: expected {:?} data frames, have {:?}",self.num_points(),self.data.len());
+            self.valid = false;
+            return false
+        };
+        //check to make sure that every grid point has a data frame
+        let mut missing = Vec::new();
+        let mut counter = 0;
+        for grid_number in 0..self.num_points(){
+            counter += 1;
+            if !self.data.iter().any(|(index,_)| *index==grid_number) {
+                missing.push(grid_number)
+            }
+        };
+        if missing.len() > 0{
+            println!("Validation failed! Missing data frames for the following grid positions: {:?} ",missing)
+            self.valid = false;
+            false
+        }else{
+            self.valid = true;
+            true
+        }
+
+
+
+
+    }
+
+    pub fn interpolate(&self,x:f64,y:f64) {
+        if self.valid == false{
+            panic!("Must validate Grid before attempting to interpolate")
+        }
+
+
+
+
+
+
     }
 }
 
