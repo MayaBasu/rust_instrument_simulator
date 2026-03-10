@@ -1,12 +1,11 @@
 use serde::{Serialize, Deserialize};
-use crate::effects::{Effect};
-use std::io::{Read, Write};
+use std::io::{Write};
 use std::fs;
 
 #[derive(Serialize, Debug, Deserialize, Clone, Copy)]
 pub enum Use{
-    on,
-    off,
+    On,
+    Off,
 }
 
 #[derive(Serialize,Debug,Deserialize)]
@@ -33,7 +32,6 @@ pub struct FUV_DETAILS {
     pub fuv_read_noise: (Use, String),
     pub fuv_dark_current: (Use, String),
     pub fuv_vinietting: (Use,String), //path to FITS
-
     pub fuv_dead_pixels: (Use, String),
 
 }
@@ -83,7 +81,7 @@ pub struct UVEX_Details{
 impl UVEX_Details {
     pub fn default(path:&str) -> UVEX_Details {
 
-        let d = Use::off;
+        let d = Use::Off;
 
         let tma_details = TMA_Details {
             spacecraft_pointing: (d, 1.0),  //width of the gaussian to be convolved with the image
@@ -149,7 +147,6 @@ impl UVEX_Details {
         uvex.write_to_yaml(path);
         uvex
     }
-
     pub fn write_to_yaml(&self, file_name:&str,) {
         println!("Writing uvex details to {:?}", file_name);
         let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the object");

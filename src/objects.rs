@@ -32,7 +32,7 @@ impl TelescopeObject {
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
 
-    //TODO remove recipient/effect/turn off/on effect etc
+    //TODO remove recipient/effect/turn Off/On effect etc
 }
 
 

@@ -1,9 +1,11 @@
 use uvex_fitrs::*;
 use crate::demo::initialize_demo;
-use crate::demo_details::Demo_Details;
+
 use crate::fits2::{fits_path, fits_path2, open_fits};
+use crate::grid::Grid;
 use crate::instrument::{Instrument, spectral_resolution};
-use crate::data::{open_psf_directory, open_psf_fits};
+
+
 use crate::sources::{point_source, source_list};
 use crate::uvex_details::UVEX_Details;
 mod objects;
@@ -15,16 +17,23 @@ mod sources;
 mod fits2;
 
 mod uvex_details;
-mod data;
+
 mod demo;
-mod demo_details;
+
+mod data_frame;
+mod grid;
 
 fn main() {
 
+    let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
 
-    let details = Demo_Details::default("configuration/demo_details");
-    let demo = initialize_demo(details,"configuration/demo.yaml");
-    open_psf_directory(1,335);
+
+    //let details = Demo_Details::default("configuration/demo_details");
+    //let demo = initialize_demo(details,"configuration/demo.yaml");
+    let grid = Grid::load_fuv(fuv_path);
+    //println!("{:?}",grid.corner());
+    //println!("{:?}",grid.size());
+    //grid.pretty_print()
 }
 /*
 

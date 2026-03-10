@@ -116,7 +116,7 @@ impl EffectType {
         /*returns an instance of an Effect of type EffectType.
         So QUANTUM_EFFICIENCY.new("best_ever_qe", "data/qe")
         returns an Effect of EffectType QUANTUM_EFFICIENCY with name "best_ever_qe" and data path "data/qe"
-        This defaults to an active element. You can use Effect.turn_off() to turn off the effect so it isn't used.
+        This defaults to an active element. You can use Effect.turn_off() to turn Off the effect so it isn't used.
          */
         Effect{
             effect_label:effect_label.to_string(),
@@ -142,7 +142,7 @@ pub struct Effect {
 }
 impl Effect{
     pub fn turn_off(&mut self){
-        //turns off an effect
+        //turns Off an effect
         self.active = false
     }
 

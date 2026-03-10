@@ -12,7 +12,7 @@ use rayon::prelude::*;
 use byteorder::ByteOrder;
 //making the uvex instrument is done after we are given details
 //what are we not changing: number of object, order of objects, effects per object
-//data files, on or off,
+//data files, On or Off,
 
 use crate::fits2;
 use crate::fits2::{fits_path, open_fits};
@@ -46,6 +46,8 @@ pub struct Instrument{
 impl Instrument{
     pub fn new(instrument_label:&str, entry_point:&str) -> Instrument{
         Instrument{
+            fov_x: 3.8,
+            fov_y: 3.8,
             instrument_label: instrument_label.to_string(),
             entry_point: entry_point.to_string(),
             telescope_objects: vec![],

@@ -133,6 +133,8 @@ pub fn initialize_uvex(uvex_details:UVEX_Details,path:&str) -> Instrument{
     m3.add_recipient(slit.unique_label.as_str());
 
     let mut uvex = Instrument{
+        fov_x: 3.52,
+        fov_y: 3.52,
         instrument_label: "uvex".to_string(),
         entry_point: m1.unique_label.to_string(),
         measurement_points: vec![fuv_detector.unique_label.clone(),nuv_detector.unique_label.clone(),image_plane.unique_label.clone()],

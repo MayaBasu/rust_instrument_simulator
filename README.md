@@ -6,7 +6,7 @@ An instrument simulator designed to quickly generate large images from complex i
 
 # Configuring the Details
 
-The details of the uvex instrument include the specification of data files or values to be used, as well as if a given particular effect (such as a quantum efficiency or transmission curve) should be turned on or off.
+The details of the uvex instrument include the specification of data files or values to be used, as well as if a given particular effect (such as a quantum efficiency or transmission curve) should be turned On or Off.
 
 To generate a template details YAML, we can use the details default function:
 
@@ -27,26 +27,26 @@ You should get
 
 tma_details:
   spacecraft_pointing:
-  - on
+  - On
   - 1.0
   tma_m1_reflectance: #do not edit this
-  - on  #edit this to turn "on" or "off" the effect
+  - On  #edit this to turn "On" or "Off" the effect
   - data/tma/tma_m1_reflectance #edit this to change the path
   tma_m1_contamination:
-  - on
+  - On
   - 2.0
 #...clipped...
   image_plane_qe:
-  - on
+  - On
   - data/spectrograph/image_plane_qe
   image_plane_dead_pixels:
-  - on
+  - On
   - data/spectrograph/image_plane_dead_pixels
   image_plane_read_noise:
-  - on
+  - On
   - data/spectrograph/image_plane_read_noise
   image_plane_dark_current:
-  - on
+  - On
   - data/spectrograph/image_plane_dark_current
 
 
