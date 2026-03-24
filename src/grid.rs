@@ -1,6 +1,9 @@
+use std::io::Write;
 use crate::data_frame::DataFrame;
 use std::fs;
+use std::fs::File;
 use std::path::PathBuf;
+use std::slice::Chunks;
 
 #[derive(Debug)]
 pub struct Grid {
@@ -8,9 +11,12 @@ pub struct Grid {
     pub x_step_size: f64,
     pub y_num: usize,
     pub y_step_size: f64,
+    pub num_points: usize,
     pub center: (f64,f64),
+    pub top_left_corner: (f64,f64),
     pub rotation: f64,
     pub data: Vec<(usize, DataFrame)>,
+    pub data_size: (usize,usize),
     pub snap_precision: f64,
     valid: bool,
 }
@@ -23,34 +29,43 @@ impl Grid{
                y_step_size: f64,
                center: (f64,f64),
                rotation: f64,
+                     data_size: (usize,usize),
                snap_precision: f64,) -> Grid{
+
+        let size = (x_step_size*(x_num-1) as f64,y_step_size*(y_num -1) as f64);
+        let num_points = x_num*y_num;
+        let (x_0,y_0) = center;
+        let (x_size,y_size) = size;
+        let top_left_corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
+
         Grid{
             x_num,
             x_step_size,
             y_num,
             y_step_size,
+            num_points,
             center,
+            top_left_corner,
             rotation,
             data: vec![],
+            data_size,
             snap_precision,
-            valid: false
+            valid: false,
         }
 
     }
 
     pub fn empty_fuv()->Grid{
-        Grid{
-            x_num:18,
-            x_step_size:0.2,
-            y_num:18,
-            y_step_size:0.2,
-            center:(-0.56,-0.06),
-            rotation:0.0,
-            data: vec![],
-            snap_precision:0.01,
-            valid: false,
-        }
-
+        Grid::new_empty(
+            18, //x_num
+            0.2, //x_step_size
+            18, //y_num
+            0.2, //y_step_size
+            (-0.56, -0.06),
+            0.0,
+            (64,64),
+            0.01,
+        )
     }
 
     pub fn load_fuv(directory_path:&str)-> Grid{
@@ -62,28 +77,27 @@ impl Grid{
             counter += 1;
             let path = path.unwrap().path();
             //println!("Loading file {}", path.display());
-            let frame = DataFrame::frame_psf(64,64,40000.0,path);
+            let (x_pixels,y_pixels) = fuv_grid.data_size;
+            let frame = DataFrame::load_psf(x_pixels,y_pixels,40000.0,path);
             let frame_index = fuv_grid.snap(frame.x_pos,frame.y_pos);
             fuv_grid.data.push((frame_index,frame))
         }
-        assert_eq!(counter,fuv_grid.num_points());
+
+        fuv_grid.data.sort_by_key(|x|x.0);
+
+        assert_eq!(counter,fuv_grid.num_points);
         println!("Loaded {counter} files into an FUV Grid Struct from {directory_path}");
+        for i in 0..fuv_grid.data.len(){
+            println!("{:?}",fuv_grid.data[i].0)
+        }
         fuv_grid
     }
 
-    pub fn corner(&self)->(f64,f64){
-        //return the coordinates in degrees of the top left corner
-        let (x_0,y_0) = self.center;
-        let (x_size,y_size) = self.size();
-        (x_0 - x_size/2.0,y_0 - y_size/2.0)
-    }
-    pub fn size(&self)->(f64,f64){
-        //return the size of the grid, boundaries dictated by the positions of the outermost points
-        (self.x_step_size*(self.x_num-1) as f64,self.y_step_size*(self.y_num -1) as f64)
-    }
+
+
 
     pub fn xy_indices(&self, grid_number:usize) -> (usize,usize){
-        assert!((grid_number <= self.num_points() - 1)&&(grid_number >= 0));
+        assert!((grid_number <= self.num_points - 1)&&(grid_number >= 0));
         let x_index = grid_number % self.x_num;
         let y_index = (grid_number - x_index)/self.y_num;
         (x_index,y_index)
@@ -97,14 +111,14 @@ impl Grid{
 
     pub fn location(&self, grid_number:usize) -> (f64,f64){
         assert!(grid_number <= self.x_num*self.y_num-1);
-        let (x_corner,y_corner) = self.corner();
+        let (x_corner,y_corner) = self.top_left_corner;
         let (x_index,y_index) = self.xy_indices(grid_number);
         (x_corner + x_index as f64 *self.x_step_size,
          y_corner + y_index as f64 *self.y_step_size)
 
     }
     pub fn snap(&self, x_pos:f64,y_pos:f64)-> usize{
-        let (x_corner,y_corner) = self.corner();
+        let (x_corner,y_corner) = self.top_left_corner;
         let (x_distance,y_distance) = (x_pos-x_corner,y_pos-y_corner);
         let (x_steps,y_steps) =
             ((x_distance/self.x_step_size).round(),
@@ -119,16 +133,14 @@ impl Grid{
         assert!(y_steps as usize <= self.y_num);
         assert!(x_steps as usize <= self.x_num);
         let index = (y_steps as usize)*self.x_num + (x_steps as usize);
-        assert!(index <= self.num_points());
+        assert!(index <= self.num_points);
         index
     }
 
-    pub fn num_points(&self)-> usize{
-        self.x_num*self.y_num
-    }
+
 
     pub fn find_corners(&self,x:f64,y:f64) -> (usize,usize,usize,usize){
-        let (x_corner,y_corner) = self.corner();
+        let (x_corner,y_corner) = self.top_left_corner;
         let (x_distance, y_distance) = (x-x_corner,y-y_corner);
 
         let (lower_x,lower_y) = ((x_distance/self.x_step_size).floor() as usize,
@@ -145,6 +157,7 @@ impl Grid{
         (corner_0,corner_1,corner_2,corner_3)
     }
     pub fn get_frame(&self,grid_number:usize)-> DataFrame{
+
         //TODO: remove this clone?
         let (index,data_frame) = self.data[grid_number].clone();
         assert_eq!(index,grid_number);
@@ -178,15 +191,15 @@ impl Grid{
     }
     pub fn validate(&mut self) -> bool {
         //check to make sure there are the same number of data frames as there are grid points
-        if self.data.len() != self.num_points(){
-            println!("Validation failed: expected {:?} data frames, have {:?}",self.num_points(),self.data.len());
+        if self.data.len() != self.num_points{
+            println!("Validation failed: expected {:?} data frames, have {:?}",self.num_points,self.data.len());
             self.valid = false;
             return false
         };
         //check to make sure that every grid point has a data frame
         let mut missing = Vec::new();
         let mut counter = 0;
-        for grid_number in 0..self.num_points(){
+        for grid_number in 0..self.num_points{
             counter += 1;
             if !self.data.iter().any(|(index,_)| *index==grid_number) {
                 missing.push(grid_number)
@@ -201,6 +214,7 @@ impl Grid{
             true
         }
     }
+    /*
     pub fn interpolate(&self,x:f64,y:f64) -> Vec<f32>{
         if self.valid == false{
             panic!("Must validate Grid before attempting to interpolate")
@@ -221,6 +235,34 @@ impl Grid{
                      (Q0*q0 as f32 + Q1*q1 as f32 + Q2*q2 as f32 + Q3*q3 as f32)*common_factor as f32
              ).collect();
         result
+    }
+
+     */
+    pub fn print_points(&self){
+
+    }
+    pub fn print_frames(&self, path:&str,trim_x:usize,trim_y:usize) {
+
+        let mut pretty_picture: Vec<f32> = Vec::new();
+        let (data_x, data_y) = self.data_size;
+        for grid_row  in 0..self.y_num{
+
+            let grid_index_start = grid_row*self.x_num;
+            let grid_index_end = grid_row*self.x_num + self.x_num;
+            println!("Grid row {grid_row}  {grid_index_start} {grid_index_end}");
+            for data_row  in 0+trim_y..64-trim_y{
+
+                for frame_number in (grid_index_start..grid_index_end){
+                    let mut frame_row = self.get_frame(frame_number).data[data_row].clone();
+                    assert_eq!(frame_row.len(),64);
+                    pretty_picture.append(&mut frame_row[0+trim_x..64-trim_x].iter().map(|i| *i).collect())
+                }
+            }
+        }
+        println!("DISLAPY IS {:?} long",pretty_picture.len());
+        let mut file = File::create(path).expect("Couldn't create the pretty picture file");
+        write!(file, "{:?}",pretty_picture).expect("Failed to write pretty picture ");
+
     }
 }
 

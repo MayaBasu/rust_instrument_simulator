@@ -10,11 +10,11 @@ pub struct DataFrame {
     pub x_pos: f64, //position in FOV in degrees
     pub y_pos: f64,
     pub inverse_scale: f64, //4,000 for qe, dark current, anything samples per pixel but this is 40,000 for the PSF files
-    pub data: Vec<f32>,
+    pub data: Vec<Vec<f32>>,
     pub path: PathBuf,
 }
 impl DataFrame{
-    pub fn frame_psf(
+    pub fn load_psf(
         x_pixels: usize,
         y_pixels: usize,
         inverse_scale: f64, //TODO check the psf scales
@@ -25,7 +25,7 @@ impl DataFrame{
         let fits = Fits::open(path.clone()).expect("Failed to open PSF FITS file");
         let primary_hdu= fits.iter().next().expect("Couldn't find primary HDU");
 
-        let (data,shape) = match primary_hdu.read_data() {
+        let (mut data,shape) = match primary_hdu.read_data() {
             FitsData::FloatingPoint32(FitsDataArray { shape, data }) => (data,shape),
             _ => panic!("Could not unpack PSF data")
         };
@@ -41,6 +41,8 @@ impl DataFrame{
             _ => panic!("could not unpack ypos")
         };
 
+        let data = data.chunks(64).map(|i| i.to_vec()).collect();
+
         DataFrame{
             x_pixels, //e.g 64 for a psf
             y_pixels,
@@ -55,4 +57,5 @@ impl DataFrame{
         let index = grid.snap(self.x_pos,self.y_pos);
         index
     }
+
 }

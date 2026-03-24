@@ -1,5 +1,5 @@
 use uvex_fitrs::*;
-use crate::demo::initialize_demo;
+
 
 use crate::fits2::{fits_path, fits_path2, open_fits};
 use crate::grid::Grid;
@@ -18,20 +18,26 @@ mod fits2;
 
 mod uvex_details;
 
-mod demo;
+
 
 mod data_frame;
 mod grid;
+mod field_of_view;
 
 fn main() {
 
     let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
-
-
-    //let details = Demo_Details::default("configuration/demo_details");
-    //let demo = initialize_demo(details,"configuration/demo.yaml");
     let mut grid = Grid::load_fuv(fuv_path);
     grid.validate();
+    grid.display("fuv",20,20);
+
+
+
+   // let details = uvex_details::UVEX_Details::default("details.yaml");
+
+    //let demo = initialize_demo(details,"configuration/demo.yaml");
+    //let mut grid = Grid::load_fuv(fuv_path);
+    //grid.validate();
     //println!("{:?}",grid.corner());
     //println!("{:?}",grid.size());
     //grid.pretty_print()
