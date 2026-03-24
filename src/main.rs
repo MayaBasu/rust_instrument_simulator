@@ -29,7 +29,9 @@ fn main() {
     let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
     let mut grid = Grid::load_fuv(fuv_path);
     grid.validate();
-    grid.display("fuv",20,20);
+    grid.print_frames("fuv",20,20);
+    grid.print_points(true);
+    grid.display_interpolation(1,1)
 
 
 

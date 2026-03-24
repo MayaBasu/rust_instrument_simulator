@@ -92,10 +92,7 @@ impl Grid{
         }
         fuv_grid
     }
-
-
-
-
+    
     pub fn xy_indices(&self, grid_number:usize) -> (usize,usize){
         assert!((grid_number <= self.num_points - 1)&&(grid_number >= 0));
         let x_index = grid_number % self.x_num;
@@ -214,7 +211,7 @@ impl Grid{
             true
         }
     }
-    /*
+
     pub fn interpolate(&self,x:f64,y:f64) -> Vec<f32>{
         if self.valid == false{
             panic!("Must validate Grid before attempting to interpolate")
@@ -237,8 +234,37 @@ impl Grid{
         result
     }
 
-     */
-    pub fn print_points(&self){
+
+    pub fn print_points(&self, extra:bool){
+        let mut points = Vec::new();
+        let red = "red";
+        let blue = "blue";
+        let green = "green";
+        for data_frame in self.data.clone(){
+            let (x,y) = self.location(data_frame.0);
+            points.push((x,y,blue))
+        }
+        if extra{
+            let extra_x  = 0.05;
+            let extra_y = 0.02;
+            let (corner_0,corner_1,corner_2,corner_3) = self.find_corners(extra_x,extra_y);
+
+            let (x0,y0) = self.location(corner_0);
+            let (x1,y1) = self.location(corner_1);
+            let (x2,y2) = self.location(corner_2);
+            let (x3,y3) = self.location(corner_3);
+
+            points.push((x0,y0,red));
+            points.push((x1,y1,red));
+            points.push((x2,y2,red));
+            points.push((x3,y3,red));
+            points.push((extra_x,extra_y,green));
+        }
+
+        let mut file = File::create("points").expect("Couldn't create the pretty picture file");
+        write!(file, "{:?}",points).expect("Failed to write pretty picture ");
+
+
 
     }
     pub fn print_frames(&self, path:&str,trim_x:usize,trim_y:usize) {
@@ -259,9 +285,32 @@ impl Grid{
                 }
             }
         }
-        println!("DISLAPY IS {:?} long",pretty_picture.len());
+        println!("Display IS {:?} long",pretty_picture.len());
         let mut file = File::create(path).expect("Couldn't create the pretty picture file");
         write!(file, "{:?}",pretty_picture).expect("Failed to write pretty picture ");
+
+    }
+
+    pub fn display_interpolation(&self, x:usize,y:usize){
+
+        let mut points = Vec::new();
+        let (x0,y0) = self.location(self.grid_number(x,y));
+        let (x_center,y_center) = (x0-self.x_step_size/2.0,y0-self.y_step_size/2.0);
+        let (x_a,y_a) = (x_center,y_center + self.y_step_size/2.0);
+        let (x_b,y_b) = (x_center+self.x_step_size/2.0,y_center);
+        let (x_c,y_c) = (x_center,y_center - self.y_step_size/2.0);
+        let (x_d,y_d) = (x_center-self.x_step_size/2.0,y_center);
+        points.push((x_a,y_a,"red"));
+        points.push((x_b,y_b,"green"));
+        points.push((x_c,y_c,"blue"));
+        points.push((x_d,y_d,"yellow"));
+        points.push((x_center,y_center,"pink"));
+
+        let (corner_0,corner_1,corner_2,corner_3) = self.find_corners(x_center,y_center);
+
+        let mut file = File::create("interp_points").expect("Couldn't create the pretty picture file");
+        write!(file, "{:?}",points).expect("Failed to write pretty picture ");
+
 
     }
 }
