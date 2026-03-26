@@ -1,4 +1,6 @@
+use std::iter::Flatten;
 use std::path::PathBuf;
+use std::slice::Iter;
 use serde::{Deserialize, Serialize};
 use uvex_fitrs::{Fits, FitsData, FitsDataArray, HeaderValue};
 use crate::grid::Grid;
@@ -56,6 +58,11 @@ impl DataFrame{
     pub fn snap_to_grid(&self, grid: &Grid) -> usize{
         let index = grid.snap(self.x_pos,self.y_pos);
         index
+    }
+
+
+    pub fn repack_data(flat_data: Vec<f32>) -> Vec<Vec<f32>>{
+        flat_data.chunks(64).map(|i| i.to_vec()).collect()
     }
 
 }

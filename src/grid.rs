@@ -5,15 +5,27 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::slice::Chunks;
 
+pub enum Corners{
+    Four((usize,usize,usize,usize)),
+    Two((usize,usize)),
+    One(usize),
+    None
+}
+pub enum Location{
+    Outside,
+    Inside,
+}
 #[derive(Debug)]
 pub struct Grid {
     pub x_num: usize,
     pub x_step_size: f64,
+    pub x_size: f64,
     pub y_num: usize,
     pub y_step_size: f64,
+    pub y_size: f64,
     pub num_points: usize,
     pub center: (f64,f64),
-    pub top_left_corner: (f64,f64),
+    pub corner: (f64, f64),
     pub rotation: f64,
     pub data: Vec<(usize, DataFrame)>,
     pub data_size: (usize,usize),
@@ -32,20 +44,26 @@ impl Grid{
                      data_size: (usize,usize),
                snap_precision: f64,) -> Grid{
 
-        let size = (x_step_size*(x_num-1) as f64,y_step_size*(y_num -1) as f64);
+        let x_size = x_step_size*(x_num-1)as f64;
+        let y_size = y_step_size*(y_num-1)as f64;
+
         let num_points = x_num*y_num;
+
         let (x_0,y_0) = center;
-        let (x_size,y_size) = size;
-        let top_left_corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
+        let corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
+        assert!(snap_precision<0.5);
+
 
         Grid{
             x_num,
             x_step_size,
+            x_size,
             y_num,
             y_step_size,
+            y_size,
             num_points,
             center,
-            top_left_corner,
+            corner,
             rotation,
             data: vec![],
             data_size,
@@ -79,7 +97,7 @@ impl Grid{
             //println!("Loading file {}", path.display());
             let (x_pixels,y_pixels) = fuv_grid.data_size;
             let frame = DataFrame::load_psf(x_pixels,y_pixels,40000.0,path);
-            let frame_index = fuv_grid.snap(frame.x_pos,frame.y_pos);
+            let frame_index = fuv_grid.snap((frame.x_pos,frame.y_pos));
             fuv_grid.data.push((frame_index,frame))
         }
 
@@ -92,7 +110,7 @@ impl Grid{
         }
         fuv_grid
     }
-    
+
     pub fn xy_indices(&self, grid_number:usize) -> (usize,usize){
         assert!((grid_number <= self.num_points - 1)&&(grid_number >= 0));
         let x_index = grid_number % self.x_num;
@@ -101,49 +119,104 @@ impl Grid{
     }
 
     pub fn grid_number(&self, x_index:usize,y_index:usize) -> usize{
-        assert!(x_index <= self.x_num-1);
-        assert!(y_index <= self.y_num-1);
+        assert!((x_index <= self.x_num-1) && (x_index >= 0));
+        assert!((y_index <= self.y_num-1) && (y_index >= 0));
         y_index*self.x_num + x_index
     }
 
     pub fn location(&self, grid_number:usize) -> (f64,f64){
         assert!(grid_number <= self.x_num*self.y_num-1);
-        let (x_corner,y_corner) = self.top_left_corner;
+        let (x_corner,y_corner) = self.corner;
         let (x_index,y_index) = self.xy_indices(grid_number);
         (x_corner + x_index as f64 *self.x_step_size,
          y_corner + y_index as f64 *self.y_step_size)
 
     }
-    pub fn snap(&self, x_pos:f64,y_pos:f64)-> usize{
-        let (x_corner,y_corner) = self.top_left_corner;
-        let (x_distance,y_distance) = (x_pos-x_corner,y_pos-y_corner);
-        let (x_steps,y_steps) =
-            ((x_distance/self.x_step_size).round(),
-             (y_distance/self.y_step_size).round());
-        //panic if the point can't be snapped within precision
-        //TODO: add error handling
-        let snap_x = (x_steps*self.x_step_size - x_distance);
-        let snap_y = (y_steps*self.y_step_size - y_distance);
-        println!("Snap x,y: {:?}",(snap_x,snap_y));
-        assert!(snap_x<self.snap_precision);
-        assert!(snap_y<self.snap_precision);
-        assert!(y_steps as usize <= self.y_num);
-        assert!(x_steps as usize <= self.x_num);
-        let index = (y_steps as usize)*self.x_num + (x_steps as usize);
-        assert!(index <= self.num_points);
-        index
+    pub fn snap(&self,point:(f64,f64))-> usize{
+        let (x_mod,y_mod,x_residual,y_residual) = self.fit_grid(point);
+        if (x_residual.abs() >= self.snap_precision)  | (y_residual.abs() >= self.snap_precision){
+            panic!("Couldn't snap point")
+        };
+        self.grid_number(x_mod,y_mod)
+    }
+
+    pub fn fit_grid(&self, point:(f64,f64))->(usize,usize,f64,f64){
+        //ensure that the point is within the grid
+        match self.inside_or_outside(point) {
+            Location::Outside => {panic!("Tried to grid a point that was outside of the grid")}
+            Location::Inside => {}
+        }
+        //find the nearest point and then return the residuals to it
+
+        let (x,y) = point;
+        let (corner_x,corner_y) = self.corner;
+        let delta_x = x - corner_x;
+        let delta_y = y - corner_y;
+        let x_scaled_residual = delta_x/self.x_step_size - (delta_x/self.x_step_size).floor();
+        let y_scaled_residual = delta_y/self.y_step_size - (delta_y/self.y_step_size).floor();
+
+        let (x_mod, x_residual) = if x_scaled_residual <= 0.5{
+            let x_mod = (delta_x/self.x_step_size).floor() as usize;
+            let x_residual = x_scaled_residual*self.x_step_size;
+            (x_mod,x_residual)
+
+        }else{
+            let x_mod = (delta_x/self.x_step_size).floor() as usize + 1;
+            let x_residual = -1.0*x_scaled_residual*self.x_step_size;
+            (x_mod,x_residual)
+        };
+
+        let (y_mod,y_residual) = if y_scaled_residual <=0.5{
+            let y_mod = (delta_y/self.y_step_size).floor() as usize;
+            let y_residual = y_scaled_residual*self.y_step_size;
+            (y_mod,y_residual)
+        }else{
+            let y_mod = (delta_y/self.y_step_size).floor() as usize + 1;
+            let y_residual = -1.0*y_scaled_residual*self.y_step_size;
+            (y_mod,y_residual)
+        };
+
+        (x_mod,y_mod,x_residual,y_residual)
     }
 
 
 
-    pub fn find_corners(&self,x:f64,y:f64) -> (usize,usize,usize,usize){
-        let (x_corner,y_corner) = self.top_left_corner;
-        let (x_distance, y_distance) = (x-x_corner,y-y_corner);
+    pub fn inside_or_outside(&self, point:(f64,f64)) -> Location{
+        let (x,y) = point;
+        let epsilon = self.snap_precision;
+        let (corner_x,corner_y) = self.corner;
+        let (grid_x_min, grid_x_max) = (corner_x, corner_x + self.x_size);
+        let (grid_y_min, grid_y_max) = (corner_y, corner_y + self.y_size);
 
-        let (lower_x,lower_y) = ((x_distance/self.x_step_size).floor() as usize,
-                                 (y_distance/self.y_step_size).floor() as usize);
-        let (upper_x,upper_y) = ((x_distance/self.x_step_size).ceil() as usize,
-                                 (y_distance/self.y_step_size).ceil() as usize);
+        if (x < grid_x_min - epsilon) | (x > grid_x_max + epsilon) | (y < grid_y_min - epsilon) | (y > grid_y_max + epsilon){
+            println!("Point was outside of the grid");
+            return Location::Outside
+        };
+        Location::Inside
+    }
+
+
+
+    pub fn find_corners(&self,point:(f64,f64)) -> Corners{
+        let epsilon = self.snap_precision;
+
+        let (x_mod,y_mod,x_residual,y_residual)  = self.fit_grid(point);
+
+        //first we check to see if it is most appropriate to snap this point to a grid point:
+        if (x_residual.abs() <= epsilon) && (y_residual.abs() <= epsilon) {
+            return Corners::One(self.grid_number(x_mod,y_mod))
+        };
+
+        //Is the point between two vertical grid points?
+        if (x_residual.abs() <= epsilon) {
+            return Corners::Two(self.grid_number(x_mod,y_mod))
+        };
+
+
+
+
+
+
 
         let corner_0 = self.grid_number(lower_x,lower_y);
         let corner_1 = self.grid_number(upper_x,lower_y);
@@ -162,18 +235,6 @@ impl Grid{
 
     }
 
-    pub fn bilinear_interpolation_factors(&self, x:f64,y:f64)-> (f64,(f64,f64,f64,f64), (usize,usize,usize,usize)){
-        let corners = self.find_corners(x,y);
-        //TODO add validation of the corners (check the x is shared etc)
-        let (x1,y1) = self.location(corners.0);
-        let (x2,y2) = self.location(corners.2);
-        let q0 = (x2-x)*(y-y2);
-        let q1 = (x-x1)*(y-y2);
-        let q2 = (x-x1)*(y1-y);
-        let q3 = (x2-x)*(y1-y);
-        let common_factor = 1.0/((x2-x1)*(y2-y1));
-        (common_factor,(q0,q1,q2,q3), corners)
-    }
 
     pub fn pretty_print(&self){
         for y in 0..self.y_num{
@@ -212,27 +273,59 @@ impl Grid{
         }
     }
 
-    pub fn interpolate(&self,x:f64,y:f64) -> Vec<f32>{
+    pub fn four_point_interpolation(&self, point0:usize,point1:usize,point2:usize,point3:usize,interp:(f64,f64))-> Vec<Vec<f32>>{
         if self.valid == false{
             panic!("Must validate Grid before attempting to interpolate")
         };
-        let (common_factor,(q0,q1,q2,q3), corners) = self.bilinear_interpolation_factors(x,y);
-        let (Q0,Q1,Q2,Q3) = (self.get_frame(corners.0),
-                             self.get_frame(corners.1),
-                             self.get_frame(corners.2),
-                             self.get_frame(corners.3));
+        let (xi,yi) = interp;
+        let (x0,y0) = self.location(point0);
+        let (x1,y1) = self.location(point1);
+        let (x2,y2) = self.location(point2);
+        let (x3,y3) = self.location(point3);
 
-        let (Q0,Q1,Q2,Q3) = (Q0.data,Q1.data,Q2.data,Q3.data);
+        //check that the four points are distinct
+        assert!((x0-x1).abs()> 2.0*self.snap_precision);
+        assert!((y1-y2).abs()> 2.0*self.snap_precision);
+        //check that the points are actually arrayed in a square
+        assert!((x0-x3).abs() < self.snap_precision);
+        assert!((x1-x2).abs() < self.snap_precision);
+        assert!((y0-y1).abs() < self.snap_precision);
+        assert!((y2-y3).abs() < self.snap_precision);
+        //check that the interp location is within the square //TODO need to be specific about the margins at play
+        assert!(xi > x0 + self.snap_precision/2.0);
+        assert!(xi < x2 - self.snap_precision/2.0);
+        assert!(yi > y2 + self.snap_precision/2.0);
+        assert!(yi < y1 - self.snap_precision/2.0);
 
-        let result: Vec<f32> = Q0.iter()
-            .zip(Q1.iter())
-            .zip(Q2.iter())
-            .zip(Q3.iter())
-            .map(|(((Q0,Q1),Q2),Q3)|
-                     (Q0*q0 as f32 + Q1*q1 as f32 + Q2*q2 as f32 + Q3*q3 as f32)*common_factor as f32
-             ).collect();
-        result
+        let q0 = self.get_frame(point0).data; //TODO add in verification that the locations of the frames match with the grid
+        let q1 = self.get_frame(point1).data;
+        let q2 = self.get_frame(point2).data;
+        let q3 = self.get_frame(point3).data;
+
+        let x_min = x0;
+        let x_max = x1;
+        let y_min = y2;
+        let y_max = y0;
+
+        let weight_0 = (x_max-xi)*(yi-y_min);
+        let weight_1 = (xi-x_min)*(yi-y_min);
+        let weight_2 = (xi-x_min)*(y_max-yi);
+        let weight_3 = (x_max-xi)*(y_max-yi);
+        println!("The weights are {:?}",(weight_0,weight_1,weight_2,weight_3));
+        let area = ((x_max-x_min)*(y_max-y_min));
+
+        let interpolated_data:Vec<f32> =
+            q0.into_iter().flatten().zip(
+                q1.into_iter().flatten().zip(
+                    q2.into_iter().flatten().zip(
+                        q3.into_iter().flatten()))).map(
+            |(q0,(q1,(q2,q3)))| {
+            (q0*weight_0 as f32 + q1*weight_1 as f32 + q2*weight_2 as f32 + q3*weight_3 as f32)/area as f32
+        }).collect();
+        interpolated_data.chunks(64).map(|i| i.to_vec()).collect()
     }
+
+
 
 
     pub fn print_points(&self, extra:bool){
