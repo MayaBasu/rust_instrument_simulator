@@ -4,25 +4,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-for n in [35]:
-    path = "/Users/mayabasu/RustroverProjects/image_simulator_outline/data/demo/demo_psf/FUV PSF/UVEX_FUV_PSF_1um_F"+ f'{n:03}'+".fits"
+#for n in [35]:
+path = '/Users/mayabasu/Desktop/uvex_psf_files/NUV PSF/UVEX_NUV_PSF_1um_F003.fits'
+#"/Users/mayabasu/Desktop/uvex_psf_files/NUV_flat_field_illumination.fits"
+    #'/Users/mayabasu/Desktop/uvex_psf_files/NUV PSF/UVEX_NUV_PSF_1um_F003.fits'
+#"/Users/mayabasu/RustroverProjects/image_simulator_outline/data/demo/demo_psf/FUV PSF/UVEX_FUV_PSF_1um_F"+ f'{n:03}'+".fits"
 
-    file = fits.open(path)
-    data = file[0].data
-
-
-    header = file[0].header
-    print(header)
-    print(header["XPOS"])
+file = fits.open(path)
+data = file[0].data
 
 
-    #np.set_printoptions(threshold=sys.maxsize)
-    #data = np.array(data).flatten()
+header = file[0].header
+print(header)
 
 
-    #print(np.argmax(data))
-    #print(data[1955])
 
-    plt.imshow(data)
-    plt.show()
+#np.set_printoptions(threshold=sys.maxsize)
+#data = np.array(data).flatten()
+
+
+#print(np.argmax(data))
+#print(data[1955])
+
+plt.imshow(data)
+plt.show()
 

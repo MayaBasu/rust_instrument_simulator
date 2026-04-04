@@ -6,7 +6,7 @@ use crate::grid::Grid;
 use crate::instrument::{Instrument, spectral_resolution};
 
 
-use crate::sources::{point_source, source_list};
+use crate::sources::{PointSource, SourceList};
 use crate::uvex_details::UVEX_Details;
 mod objects;
 mod uvex;
@@ -27,12 +27,10 @@ mod field_of_view;
 fn main() {
 
     let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
-    let mut grid = Grid::load_fuv(fuv_path);
+    let mut grid = uvex::empty_fuv();
+    grid.load_data_frames(fuv_path, ("XPOS", "YPOS"), (64, 64), (6.4, 6.4));
     grid.validate();
-    grid.print_frames("fuv",20,20);
-    grid.print_points(true);
-    grid.display_interpolation(1,1)
-
+  
 
 
    // let details = uvex_details::UVEX_Details::default("details.yaml");

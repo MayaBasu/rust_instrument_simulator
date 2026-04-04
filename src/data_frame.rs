@@ -2,61 +2,67 @@ use std::iter::Flatten;
 use std::path::PathBuf;
 use std::slice::Iter;
 use serde::{Deserialize, Serialize};
-use uvex_fitrs::{Fits, FitsData, FitsDataArray, HeaderValue};
+use uvex_fitrs::{Fits, FitsData, FitsDataArray, Hdu, HeaderValue};
 use crate::grid::Grid;
+use crate::sources::{PointSource, SourceList};
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct DataFrame {
-    pub x_pixels: usize, //e.g 64 for a psf
-    pub y_pixels: usize,
-    pub x_pos: f64, //position in FOV in degrees
-    pub y_pos: f64,
-    pub inverse_scale: f64, //4,000 for qe, dark current, anything samples per pixel but this is 40,000 for the PSF files
-    pub data: Vec<Vec<f32>>,
     pub path: PathBuf,
+    pub data: Vec<Vec<f32>>,
+    pub x_pixels: usize,
+    pub y_pixels: usize,
+    pub center: (f64,f64),
+    pub size: (f64,f64),
 }
+
+pub struct DataFile {
+    pub description: String,
+    pub path: PathBuf,
+    pub x_pixels: usize,
+    pub y_pixels: usize,
+}
+
+
+pub enum Load{
+    FromKey(String),
+    FromValue(f64)
+}
+
 impl DataFrame{
-    pub fn load_psf(
-        x_pixels: usize,
-        y_pixels: usize,
-        inverse_scale: f64, //TODO check the psf scales
-        path: PathBuf,
-    ) -> DataFrame{
-
-        println!("Loading PSF file {:?} into a DataFrame",path.clone());
-        let fits = Fits::open(path.clone()).expect("Failed to open PSF FITS file");
+    pub fn load_file(file:DataFile,center:(Load,Load),size:(Load,Load)) -> DataFrame{
+        println!("Loading {:?} into a DataFrame from {:?}",file.description,file.path);
+        let fits = Fits::open(file.path.clone()).expect("Failed to open FITS file");
         let primary_hdu= fits.iter().next().expect("Couldn't find primary HDU");
-
         let (mut data,shape) = match primary_hdu.read_data() {
             FitsData::FloatingPoint32(FitsDataArray { shape, data }) => (data,shape),
             _ => panic!("Could not unpack PSF data")
-        };
-        assert_eq!(shape[0], x_pixels,"Diva down!"); //check that the data is the expected size
-        assert_eq!(shape[1], y_pixels,"Diva down!");
+        }; //TODO add support for f64 etc
 
-        let x_pos = *match primary_hdu.value("XFLD").expect("failed to get xpos") {
-            HeaderValue::RealFloatingNumber(xpos)=> xpos,
-            _ => panic!("could not unpack xpos")
-        };
-        let y_pos = *match primary_hdu.value("YFLD").expect("failed to get xpos") {
-            HeaderValue::RealFloatingNumber(ypos)=> ypos,
-            _ => panic!("could not unpack ypos")
-        };
+        assert_eq!(shape[0], file.x_pixels,"Diva down! Tried to load a file with data of the wrong x size"); //check that the data is the expected size
+        assert_eq!(shape[1], file.y_pixels,"Diva down! Tried to load a file with data of the wrong y size");
 
-        let data = data.chunks(64).map(|i| i.to_vec()).collect();
 
+        let center_x:f64 = DataFrame::load(center.0,&primary_hdu);
+        let center_y:f64 = DataFrame::load(center.1,&primary_hdu);
+        let size_x:f64 = DataFrame::load(size.0,&primary_hdu);
+        let size_y:f64 = DataFrame::load(size.1,&primary_hdu);
+        let data = data.chunks(file.x_pixels).map(|i| i.to_vec()).collect();
         DataFrame{
-            x_pixels, //e.g 64 for a psf
-            y_pixels,
-            x_pos, //position in FOV in degrees
-            y_pos,
-            inverse_scale, //4,000 for qe, dark current, anything samples per pixel but this is 40,000 for the PSF files
+            path: file.path,
             data,
-            path,
+            x_pixels: file.x_pixels,
+            y_pixels: file.y_pixels,
+            center: (center_x,center_y),
+            size: (size_x,size_y),
         }
     }
+
+
+
+
     pub fn snap_to_grid(&self, grid: &Grid) -> usize{
-        let index = grid.snap(self.x_pos,self.y_pos);
+        let index = grid.snap(self.center);
         index
     }
 
@@ -65,4 +71,40 @@ impl DataFrame{
         flat_data.chunks(64).map(|i| i.to_vec()).collect()
     }
 
+    fn load(thingy:Load, header:&Hdu)-> f64{
+        match thingy{
+            Load::FromKey(Key) => {
+                match header.value(&Key).expect("failed to get key") {
+                    HeaderValue::RealFloatingNumber(value)=> *value,
+                    _ => panic!("could not unpack FITS header value")
+                }}
+            Load::FromValue(value) => value
+        }
+    }
+    /*
+
+    pub fn calculate_pixel_locations(&self) {
+        let indexes: Vec<Vec<(usize,usize)>> = self.data.iter().enumerate().map(|(y_index,row)|
+            row.iter().enumerate().map(|(x_index, value)| (x_index,y_index)).collect::<Vec<(usize,usize)>>()).collect();
+    }
+
+     */
+
+    pub fn convolve(&self,point_source: PointSource) -> SourceList{
+        let bottom_left_corner = (self.center.0 - self.size.0/2.0,self.center.1 - self.size.1/2.0);
+        let pixel_width = self.size.0/self.x_pixels as f64;
+        let pixel_height = self.size.1/self.y_pixels as f64;
+        let mut output_sources = SourceList::new_empty(self.x_pixels*self.y_pixels);
+        for y_index in 0..self.y_pixels{
+            for x_index in 0..self.x_pixels{
+                let x = bottom_left_corner.0 + pixel_width*(x_index as f64 + 0.5);
+                let y  = bottom_left_corner.1 + pixel_height*(y_index as f64 + 0.5);
+                let value = self.data[y_index][x_index] as f64 * point_source.luminosity ;
+                let source = PointSource::new(x,y,point_source.spectrum.clone(),value);
+                output_sources.add_source(source);
+
+            }
+        }
+        output_sources
+    }
 }

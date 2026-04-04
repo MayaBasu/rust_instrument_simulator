@@ -6,22 +6,23 @@ use crate::instrument::{spatial_resolution, spectral_resolution};
 
 
 #[derive(Debug,Serialize,Clone)]
-pub struct point_source{
+pub struct PointSource {
     pub source_x:f64, //floats between 0 and 1
     pub source_y:f64,
     pub spectrum: [f64;spectral_resolution],
     pub luminosity: f64,
 }
 
-impl point_source{
-    pub fn new(source_x:f64, source_y:f64, spectrum: [f64;spectral_resolution],luminosity:f64) -> point_source{
-        point_source{
+impl PointSource {
+    pub fn new(source_x:f64, source_y:f64, spectrum: [f64;spectral_resolution],luminosity:f64) -> PointSource {
+        PointSource {
             source_x,
             source_y,
             spectrum,
             luminosity,
         }
     }
+    
     pub(crate) fn get_bin(&self, num_spacial_bins:usize) -> usize{
         if num_spacial_bins ==1{
             return 1
@@ -37,22 +38,22 @@ impl point_source{
 }
 
 #[derive(Debug,Serialize)]
-pub struct source_list{
-    pub sources: Vec<point_source>,
+pub struct SourceList {
+    pub sources: Vec<PointSource>,
 }
-impl source_list{
-    pub fn new_from(mut sources:Vec<point_source> ) -> source_list{
+impl SourceList {
+    pub fn new_from(mut sources:Vec<PointSource> ) -> SourceList {
         //sources.sort_by(|a:&point_source, b:&point_source| b.bin.cmp(&a.bin));
-        source_list{
+        SourceList {
             sources,
         }
     }
-    pub fn new_empty(capacity:usize) -> source_list{
-        source_list{
+    pub fn new_empty(capacity:usize) -> SourceList {
+        SourceList {
             sources: Vec::with_capacity(capacity)
         }
     }
-    pub fn add_source(&mut self, source:point_source) -> &mut source_list {
+    pub fn add_source(&mut self, source: PointSource) -> &mut SourceList {
         self.sources.push(source);
         self
 
@@ -65,7 +66,7 @@ impl source_list{
                                          min_y: f64,
                                          max_y:f64,
                                          spectrum:[f64;spectral_resolution],
-                                        ) -> source_list{
+                                        ) -> SourceList {
         //Some checks to make sure that the incoming values are as expected
         //TODO Fix these checks to work with f64 values
         /*
@@ -82,13 +83,13 @@ impl source_list{
         let x_positions = Uniform::new(min_x,max_x).expect("Could not generate random x positions in the given range");
         let y_positions = Uniform::new(min_y,max_y).expect("Could not generate random y positions in the given range");
         let mut rng = rand::rng();
-        let sources: Vec<point_source> = (0..number_of_point_sources).map(|_x|{
+        let sources: Vec<PointSource> = (0..number_of_point_sources).map(|_x|{
             let x = x_positions.sample(&mut rng);
             let y = y_positions.sample(&mut rng);
             let luminosity = luminosities.sample(&mut rng);
-            point_source::new(x, y, spectrum, luminosity)
+            PointSource::new(x, y, spectrum, luminosity)
         }).collect();
-        source_list::new_from(sources)
+        SourceList::new_from(sources)
     }
     pub fn write_to_yaml(&self, file_name:&str,) {
         println!("Serializing point sources");

@@ -1,6 +1,7 @@
 use crate::objects::TelescopeObject;
 use crate::effects::{Effect, EffectAction};
-use crate::sources::{point_source, source_list};
+use crate::sources::{PointSource, SourceList};
+
 use std::io::Write;
 use memmap2::Mmap;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
@@ -18,11 +19,14 @@ use crate::fits2;
 use crate::fits2::{fits_path, open_fits};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use crate::grid::{Data, Grid};
 
 pub const spectral_resolution:usize  = 2;
 pub const spatial_resolution:usize  = 4;
 //TODO I want this to serialize as m1 -> m2 ....
 #[derive(Serialize, Deserialize)]
+
+
 
 pub struct Instrument{
 
@@ -54,6 +58,7 @@ impl Instrument{
             measurement_points: vec![],
         }
     }
+    
     pub fn add_object(&mut self, object:TelescopeObject){
         self.telescope_objects.push(object)
     }
@@ -73,7 +78,7 @@ impl Instrument{
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
 
-    pub fn run(&self, source_list: &mut source_list) {
+    pub fn run(&self, source_list: &mut SourceList) {
 
         /*
         We want to take in a list of spectra, each of which has an associated set of locations at which it is at.
@@ -155,20 +160,20 @@ impl Instrument{
                         let resulting_source_list = match effect_action {
                             EffectAction::ComponentWiseMultiplicative => {
                                 source.luminosity *= data[source_bin] as f64 ;
-                                let mut list = source_list::new_from(
+                                let mut list = SourceList::new_from(
                                     vec![source]
                                 );
                                 list
                             }
                             EffectAction::ComponentWiseAddition => {
                                 source.luminosity += data[source_bin] as f64 ;
-                                let mut list = source_list::new_from(
+                                let mut list = SourceList::new_from(
                                     vec![source]
                                 );
                                 list
                             }
                             EffectAction::ConvolutionKernel => {
-                                let mut source_list = source_list::new_empty(effect_spatial);
+                                let mut source_list = SourceList::new_empty(effect_spatial);
                                 // need to figure out the conversion of pixles in the fits file to my 0-1 x axis
                                 let conversion = 1; //TODO
                                 for kernel_pixel_x in 0..spatial_resolution{
@@ -183,7 +188,7 @@ impl Instrument{
 
                             }
                             EffectAction::Reshape => {
-                                let mut source_list = source_list::new_empty(effect_spatial);
+                                let mut source_list = SourceList::new_empty(effect_spatial);
                                 source_list}
                         };
 
