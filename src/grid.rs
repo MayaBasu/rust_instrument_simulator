@@ -1,4 +1,4 @@
-use plotpy::{Curve, Legend, Plot, Text};
+use plotpy::{Curve, Plot, Text};
 use crate::coordinate_system::CoordinateSystem;
 use rand::RngExt;
 
@@ -7,7 +7,6 @@ pub enum Corners{
     Four(usize,usize,usize,usize),
     Two(usize,usize),
     One(usize),
-    None
 }
 pub enum Location{
     Outside,
@@ -219,7 +218,7 @@ impl Grid{
 
         let mut grid_points = Curve::new();
         grid_points.set_line_style("none")
-            .set_label("Grid points")
+            .set_label(format!("Grid points: {:?}",self.label).as_str())
             .set_marker_color("blue")
             .set_marker_every(1)
             .set_marker_size(7.0)
@@ -303,7 +302,6 @@ impl Grid{
                     frame_points.push(a);
                     frame_points.push(b);}
                 Corners::One(a) => { frame_points.push(a); }
-                Corners::None => {}
             }
             frame.points_begin();
             for point in frame_points{

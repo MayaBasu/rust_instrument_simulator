@@ -30,10 +30,15 @@ fn main() {
 
 
     //let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
+
     let mut grid = uvex::empty_fuv();
+    let coords = CoordinateSystem::new((1.0,0.0),(0.0,1.0), (0.0,0.0),"detecro".to_string(),"black".to_string());
+    let mut detector = Grid::new_empty((10,10), (0.05,0.05),(0.0,0.0), (0.001),coords);
+
+    let point = detector.random();
     let mut plot = Plot::new();
-    let mut legend = plot.legend();
-    grid.plot(&mut plot,PlotPoint::Given(-2.06,-1.76));
+    grid.plot(&mut plot,PlotPoint::Given(point.0,point.1));
+    detector.plot(&mut plot, PlotPoint::Given(point.0,point.1));
 
     plot.show("figure.svg").expect("lskjef");
 

@@ -12,16 +12,17 @@ pub fn empty_fuv()->Grid{
         y_axis: (0.0,1.0),
         center: (0.0, 0.0),
         color: "red".to_string(),
-        label: "regular".to_string(),
+        label: "fuv".to_string(),
     };
-    Grid::new_empty(
+    let mut grid = Grid::new_empty(
         (18,18), //x_num
         (0.2,0.2), //x_step_size
         (-0.56, -0.06), //y_num
         0.01, //y_step_size
         coord
-
-    )
+    );
+    grid.label = "fuv".to_string();
+    grid
 }
 
 

@@ -13,6 +13,16 @@ pub struct CoordinateSystem{
 }
 
 impl CoordinateSystem{
+    pub fn new(x_axis:(f64,f64),y_axis:(f64,f64),center: (f64,f64),label:String,color:String) -> CoordinateSystem{
+        CoordinateSystem{
+            x_axis,
+            y_axis,
+            center,
+            color,
+            label,
+        }
+        
+    }
     pub(crate) fn plot(&self) -> (Curve, Curve){
         let mut x_axis = Curve::new();
         x_axis.set_line_width(2.0);
