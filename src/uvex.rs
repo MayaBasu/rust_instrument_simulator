@@ -1,18 +1,26 @@
+use crate::coordinate_system::CoordinateSystem;
 use crate::objects::TelescopeObject;
 use crate::instrument::Instrument;
 use crate::uvex_details::{FUV_DETAILS, NUV_DETAILS, SPECTROGRAPH_DETAILS, TMA_Details, UVEX_Details};
 use crate::effects::*;
-use crate::grid::{Data, Grid};
+use crate::grid::{Grid};
 
 pub fn empty_fuv()->Grid{
+
+    let coord = CoordinateSystem{
+        x_axis: (1.0,0.0),
+        y_axis: (0.0,1.0),
+        center: (0.0, 0.0),
+        color: "red".to_string(),
+        label: "regular".to_string(),
+    };
     Grid::new_empty(
-        18, //x_num
-        0.2, //x_step_size
-        18, //y_num
-        0.2, //y_step_size
-        (-0.56, -0.06),
-        Data::Frames(vec![]),
-        0.01,
+        (18,18), //x_num
+        (0.2,0.2), //x_step_size
+        (-0.56, -0.06), //y_num
+        0.01, //y_step_size
+        coord
+
     )
 }
 

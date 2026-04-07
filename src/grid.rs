@@ -1,7 +1,6 @@
-use std::io::Write;
-use std::fs::File;
-use std::fs;
-use crate::data_frame::*;
+use plotpy::{Curve, Legend, Plot, Text};
+use crate::coordinate_system::CoordinateSystem;
+use rand::RngExt;
 
 
 pub enum Corners{
@@ -15,38 +14,38 @@ pub enum Location{
     Inside,
 }
 
+
+
 #[derive(Debug,Clone)]
-pub enum Data{
-    //Data attached to a grid can either be a dataframe at each point, or a single array of values
-    Frames(Vec<(usize, DataFrame)>),
-    Scalars(Vec<Vec<f64>>),
-}
-
-
-#[derive(Debug)]
 pub struct Grid {
+    pub coordinate_system: CoordinateSystem,
+
     pub x_num: usize,
-    pub x_step_size: f64,
-    pub x_size: f64,
     pub y_num: usize,
+
+    pub x_step_size: f64,
     pub y_step_size: f64,
+
+    pub x_size: f64,
     pub y_size: f64,
+
     pub num_points: usize,
+
     pub center: (f64,f64),
     pub corner: (f64, f64),
-    pub data: Data,
+
     pub snap_precision: f64,
+
+    pub label: String,
     valid: bool,
 }
 
 impl Grid{
-    pub fn new_empty(x_num: usize,
-                    x_step_size: f64,
-                    y_num: usize,
-                    y_step_size: f64,
+    pub fn new_empty((x_num,y_num): (usize,usize),
+                     (x_step_size,y_step_size): (f64,f64),
                     center: (f64,f64),
-                    data: Data,
                     snap_precision: f64,
+                     coordinate_system: CoordinateSystem,
     ) -> Grid{
         let x_size = x_step_size*(x_num-1)as f64;
         let y_size = y_step_size*(y_num-1)as f64;
@@ -55,6 +54,7 @@ impl Grid{
         let corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
         assert!(snap_precision<0.5);
         Grid{
+            coordinate_system,
             x_num,
             x_step_size,
             x_size,
@@ -64,47 +64,12 @@ impl Grid{
             num_points,
             center,
             corner,
-            data,
             snap_precision,
+            label: "".to_string(),
             valid: false,
         }
     }
 
-
-    pub fn load_data_frames(&mut self, directory_path:&str, center_fits_keys:(&str, &str), pixels:(usize, usize), size:(f64, f64)){
-        
-        let data = match self.data{
-            Data::Frames(_) => {
-                println!("Loading data frames into grid. This overwrites any data previously loaded");
-                let mut data = vec![];
-                let paths = fs::read_dir(directory_path).unwrap();
-                let mut counter = 0;
-                for path in paths {
-                    counter += 1;
-                    let path = path.unwrap().path();
-                    let (x_pixels,y_pixels) = pixels;
-                    let data_file = DataFile{
-                        description: counter.to_string(),
-                        path,
-                        x_pixels,
-                        y_pixels,
-                    };
-                    let frame = DataFrame::load_file(data_file,
-                                                     (Load::FromKey(center_fits_keys.0.to_string()), Load::FromKey(center_fits_keys.1.to_string())),
-                                                     (Load::FromValue(size.0),Load::FromValue(size.0)));
-                    let frame_index = self.snap(frame.center);
-                    data.push((frame_index,frame))
-                }
-                data.sort_by_key(|x|x.0);
-                println!("Loaded {counter} files into a Grid Struct from {directory_path}");
-                assert_eq!(counter,self.num_points,"Loaded the wrong number of PSF files");
-                Data::Frames(data)
-            }
-            Data::Scalars(_) => {panic!("Can not load frames into a Grid if the data type is not set to frames (it is set to scalar data)")}
-        };
-        self.data = data;
-        
-    }
 
 
 
@@ -116,8 +81,8 @@ impl Grid{
     }
 
     pub fn grid_number(&self, x_index:usize,y_index:usize) -> usize{
-        assert!((x_index <= self.x_num-1) && (x_index >= 0));
-        assert!((y_index <= self.y_num-1) && (y_index >= 0));
+        assert!(x_index <= self.x_num-1);
+        assert!(y_index <= self.y_num-1);
         y_index*self.x_num + x_index
     }
 
@@ -136,6 +101,15 @@ impl Grid{
         self.grid_number(x_mod,y_mod)
     }
 
+    pub fn random(&self)-> (f64,f64){
+        let mut rng = rand::rng();
+        let x_scale: f64 = rng.random();
+        let y_scale: f64 = rng.random();
+        let point = (self.corner.0 + self.x_size*x_scale, self.corner.1 + self.y_size*y_scale);
+        println!("Randomly generating point {:?} within the grid",point);
+        point
+    }
+
     pub fn fit_grid(&self, point:(f64,f64))->(usize,usize,f64,f64){
         //ensure that the point is within the grid
         match self.inside_or_outside(point) {
@@ -148,17 +122,21 @@ impl Grid{
         let (corner_x,corner_y) = self.corner;
         let delta_x = x - corner_x;
         let delta_y = y - corner_y;
+        println!("delta x and delta y are {:?}, {:?}",delta_x,delta_y);
         let x_scaled_residual = delta_x/self.x_step_size - (delta_x/self.x_step_size).floor();
         let y_scaled_residual = delta_y/self.y_step_size - (delta_y/self.y_step_size).floor();
+
+        println!("residuals are {:?}, {:?}",x_scaled_residual,y_scaled_residual);
 
         let (x_mod, x_residual) = if x_scaled_residual <= 0.5{
             let x_mod = (delta_x/self.x_step_size).floor() as usize;
             let x_residual = x_scaled_residual*self.x_step_size;
+
             (x_mod,x_residual)
 
         }else{
             let x_mod = (delta_x/self.x_step_size).floor() as usize + 1;
-            let x_residual = -1.0*x_scaled_residual*self.x_step_size;
+            let x_residual = (x_scaled_residual-1.0)*self.x_step_size;
             (x_mod,x_residual)
         };
 
@@ -168,9 +146,11 @@ impl Grid{
             (y_mod,y_residual)
         }else{
             let y_mod = (delta_y/self.y_step_size).floor() as usize + 1;
-            let y_residual = -1.0*y_scaled_residual*self.y_step_size;
+            let y_residual = (y_scaled_residual-1.0)*self.y_step_size;
             (y_mod,y_residual)
         };
+
+        println!("{:?}",(x_mod,y_mod,x_residual,y_residual));
 
         (x_mod,y_mod,x_residual,y_residual)
     }
@@ -200,10 +180,12 @@ impl Grid{
 
         //first we check to see if it is most appropriate to snap this point to a grid point:
         if (x_residual.abs() <= epsilon) && (y_residual.abs() <= epsilon) {
+            println!("Snapped to grid point");
             return Corners::One(self.grid_number(x_mod,y_mod))
         };
         //Is the point between two vertical grid points?
         if (x_residual.abs() <= epsilon) {
+            println!("Snapped between vertical points");
             if y_residual < 0.0{
                 return Corners::Two(self.grid_number(x_mod,y_mod),self.grid_number(x_mod,y_mod-1));
             }else{
@@ -212,6 +194,7 @@ impl Grid{
         };
         //Is the point between two horizontal grid points?
         if (y_residual.abs() <= epsilon) {
+            println!("Snapped between horizontal points");
             if x_residual < 0.0{
                 return Corners::Two(self.grid_number(x_mod,y_mod),self.grid_number(x_mod-1,y_mod));
             }else{
@@ -223,211 +206,134 @@ impl Grid{
         let (upper_x,lower_x) = if x_residual < 0.0{ (x_mod,x_mod-1) }else{ (x_mod+1, x_mod)};
         let (upper_y,lower_y) = if y_residual < 0.0{ (y_mod,y_mod-1) }else{ (y_mod+1, y_mod)};
 
-
-        Corners::Four(self.grid_number(upper_y,lower_x),
-                      self.grid_number(upper_y,upper_x),
-                      self.grid_number(lower_y,upper_x),
-                      self.grid_number(lower_y,lower_x))
+        println!("Finding four corners");
+        Corners::Four(self.grid_number(lower_x,upper_y),
+                      self.grid_number(upper_x,upper_y),
+                      self.grid_number(upper_x,lower_y),
+                      self.grid_number(lower_x,lower_y))
 
     }
-    pub fn get_frame(&self,grid_number:usize)-> DataFrame{
-        //TODO: remove this clone?
-        match &self.data{
-            Data::Frames(data)=> {
-                let (index,data_frame) = data[grid_number].clone();
-                assert_eq!(index,grid_number);
-                data_frame
-            }
-            Data::Scalars(data)=>{panic!("Get frame attempted on scalar grid")}
+
+    pub fn plot(&self,plot:&mut Plot,add_point:PlotPoint){
+        CoordinateSystem::plot_coordinate_systems(vec![&self.coordinate_system],plot);
+
+        let mut grid_points = Curve::new();
+        grid_points.set_line_style("none")
+            .set_label("Grid points")
+            .set_marker_color("blue")
+            .set_marker_every(1)
+            .set_marker_size(7.0)
+            .set_marker_style(".");
+
+        let mut corner = Curve::new();
+        corner
+            .set_label("Corner")
+            .set_line_style("none")
+            .set_marker_color("#eeea83")
+            .set_marker_every(1)
+            .set_marker_size(10.0)
+            .set_marker_style(".");
+
+        let mut frame = Curve::new();
+        frame.set_line_width(1.0)
+            .set_label("Frame")
+            .set_line_style("solid")
+            .set_line_width(1.0)
+            .set_marker_color("purple")
+            .set_marker_every(1)
+            .set_marker_size(10.0)
+            .set_marker_style(".");
+
+        let mut extra_point = Curve::new();
+        extra_point.set_marker_color("#eeea83")
+            .set_marker_every(1)
+            .set_marker_size(10.0)
+            .set_line_style("none")
+            .set_marker_style("*");
+
+
+
+        let mut grid_numbers = Text::new();
+        grid_numbers.set_color("purple")
+            .set_fontsize(5.0);
+
+
+        grid_points.points_begin();
+        for point in 0..self.num_points{
+            let point_location = self.location(point);
+            grid_points.points_add(point_location.0, point_location.1);
+            let label = format!("{}",point);
+            grid_numbers.draw(point_location.0, point_location.1, label.as_str());
         }
-        
-        
-
-    }
+        grid_points.points_end();
 
 
-    pub fn pretty_print(&self){
-        for y in 0..self.y_num{
-            for x in 0..self.x_num{
-                let index = self.grid_number(x,y);
-                let (location_x,location_y) = self.location(index);
-                let (location_x,location_y) = ((location_x*100.0).round()/100.0,(location_y*100.0).round()/100.0);
-                print!("{index}:{:?}  ",(location_x,location_y))
-            }
-            println!("\n")
-        }
-    }
-    pub fn validate(&mut self) -> bool {
-        
-        match &self.data{
-            Data::Frames(data) => {//check to make sure there are the same number of data frames as there are grid points
-                if data.len() != self.num_points{
-                    println!("Validation failed: expected {:?} data frames, have {:?}",self.num_points,data.len());
-                    self.valid = false;
-                    return false
-                };
-                //check to make sure that every grid point has a data frame
-                let mut missing = Vec::new();
-                let mut counter = 0;
-                for grid_number in 0..self.num_points{
-                    counter += 1;
-                    if !data.iter().any(|(index,_)| *index==grid_number) {
-                        missing.push(grid_number)
-                    }
-                };
-                if missing.len() > 0{
-                    println!("Validation failed! Missing data frames for the following grid positions: {:?} ",missing);
-                    self.valid = false;
-                    false
-                }else{
-                    self.valid = true;
-                    true
-                }}
-            Data::Scalars(_) => {panic!("please implement me")} //TODO
-        }
-        
-    }
 
-    pub fn four_point_interpolation(&self, point0:usize,point1:usize,point2:usize,point3:usize,interp:(f64,f64))-> Vec<Vec<f32>>{
-        if self.valid == false{
-            panic!("Must validate Grid before attempting to interpolate")
+        corner.points_begin();
+        let corner_location = self.corner;
+        let corner_label = format!("Corner: ({:.3},{:.3})",corner_location.0,corner_location.1);
+        corner.points_add(corner_location.0,corner_location.1).set_label(corner_label.as_str());
+        corner.points_end();
+
+        let mut example_point = Vec::new();
+
+        match add_point {
+            PlotPoint::No => {}
+            PlotPoint::Given(x, y) => { example_point.push((x,y))}
+            PlotPoint::Random => { example_point.push(self.random()); }
         };
-        let (xi,yi) = interp;
-        let (x0,y0) = self.location(point0);
-        let (x1,y1) = self.location(point1);
-        let (x2,y2) = self.location(point2);
-        let (x3,y3) = self.location(point3);
 
-        //check that the four points are distinct
-        assert!((x0-x1).abs()> 2.0*self.snap_precision);
-        assert!((y1-y2).abs()> 2.0*self.snap_precision);
-        //check that the points are actually arrayed in a square
-        assert!((x0-x3).abs() < self.snap_precision);
-        assert!((x1-x2).abs() < self.snap_precision);
-        assert!((y0-y1).abs() < self.snap_precision);
-        assert!((y2-y3).abs() < self.snap_precision);
-        //check that the interp location is within the square //TODO need to be specific about the margins at play
-        assert!(xi > x0 + self.snap_precision/2.0);
-        assert!(xi < x2 - self.snap_precision/2.0);
-        assert!(yi > y2 + self.snap_precision/2.0);
-        assert!(yi < y1 - self.snap_precision/2.0);
+        for point in example_point{
+            let (_,_, x_res, y_res) = self.fit_grid(point);
+            extra_point.points_begin();
+            extra_point.points_add(point.0,point.1).set_label(format!("x, y residuals: {:.3}, {:.3}", x_res, y_res).as_str());
+            extra_point.points_end();
 
-        let q0 = self.get_frame(point0).data; //TODO add in verification that the locations of the frames match with the grid
-        let q1 = self.get_frame(point1).data;
-        let q2 = self.get_frame(point2).data;
-        let q3 = self.get_frame(point3).data;
-
-        let x_min = x0;
-        let x_max = x1;
-        let y_min = y2;
-        let y_max = y0;
-
-        let weight_0 = (x_max-xi)*(yi-y_min);
-        let weight_1 = (xi-x_min)*(yi-y_min);
-        let weight_2 = (xi-x_min)*(y_max-yi);
-        let weight_3 = (x_max-xi)*(y_max-yi);
-        println!("The weights are {:?}",(weight_0,weight_1,weight_2,weight_3));
-        let area = ((x_max-x_min)*(y_max-y_min));
-
-        let interpolated_data:Vec<f32> =
-            q0.into_iter().flatten().zip(
-                q1.into_iter().flatten().zip(
-                    q2.into_iter().flatten().zip(
-                        q3.into_iter().flatten()))).map(
-            |(q0,(q1,(q2,q3)))| {
-            (q0*weight_0 as f32 + q1*weight_1 as f32 + q2*weight_2 as f32 + q3*weight_3 as f32)/area as f32
-        }).collect();
-        interpolated_data.chunks(64).map(|i| i.to_vec()).collect()
-    }
-
-
-
-/*
-    pub fn print_points(&self, extra:bool){
-        let mut points = Vec::new();
-        let red = "red";
-        let blue = "blue";
-        let green = "green";
-        for data_frame in self.data.clone(){
-            let (x,y) = self.location(data_frame.0);
-            points.push((x,y,blue))
-        }
-        if extra{
-            let extra_x  = 0.05;
-            let extra_y = 0.02;
-            let (corner_0,corner_1,corner_2,corner_3) = self.find_corners(extra_x,extra_y);
-
-            let (x0,y0) = self.location(corner_0);
-            let (x1,y1) = self.location(corner_1);
-            let (x2,y2) = self.location(corner_2);
-            let (x3,y3) = self.location(corner_3);
-
-            points.push((x0,y0,red));
-            points.push((x1,y1,red));
-            points.push((x2,y2,red));
-            points.push((x3,y3,red));
-            points.push((extra_x,extra_y,green));
-        }
-
-        let mut file = File::create("points").expect("Couldn't create the pretty picture file");
-        write!(file, "{:?}",points).expect("Failed to write pretty picture ");
-
-
-
-    }
-    pub fn print_frames(&self, path:&str,trim_x:usize,trim_y:usize) {
-
-        let mut pretty_picture: Vec<f32> = Vec::new();
-        let (data_x, data_y) = self.data_size;
-        for grid_row  in 0..self.y_num{
-
-            let grid_index_start = grid_row*self.x_num;
-            let grid_index_end = grid_row*self.x_num + self.x_num;
-            println!("Grid row {grid_row}  {grid_index_start} {grid_index_end}");
-            for data_row  in 0+trim_y..64-trim_y{
-
-                for frame_number in (grid_index_start..grid_index_end){
-                    let mut frame_row = self.get_frame(frame_number).data[data_row].clone();
-                    assert_eq!(frame_row.len(),64);
-                    pretty_picture.append(&mut frame_row[0+trim_x..64-trim_x].iter().map(|i| *i).collect())
+            let corners  = self.find_corners(point);
+            let mut frame_points = Vec::new();
+            match corners{
+                Corners::Four(a, b, c, d) => {
+                    frame_points.push(a);
+                    frame_points.push(b);
+                    frame_points.push(c);
+                    frame_points.push(d);
+                    frame_points.push(a);
                 }
+                Corners::Two(a,b) => {
+                    frame_points.push(a);
+                    frame_points.push(b);}
+                Corners::One(a) => { frame_points.push(a); }
+                Corners::None => {}
             }
+            frame.points_begin();
+            for point in frame_points{
+                println!("point {point}");
+                let point = self.location(point);
+                frame.points_add(point.0,point.1);
+            }
+
+            frame.points_end();
         }
-        println!("Display IS {:?} long",pretty_picture.len());
-        let mut file = File::create(path).expect("Couldn't create the pretty picture file");
-        write!(file, "{:?}",pretty_picture).expect("Failed to write pretty picture ");
 
-    }
-    
- */
-
-    pub fn display_interpolation(&self, x:usize,y:usize){
-
-        let mut points = Vec::new();
-        let (x0,y0) = self.location(self.grid_number(x,y));
-        let (x_center,y_center) = (x0-self.x_step_size/2.0,y0-self.y_step_size/2.0);
-        let (x_a,y_a) = (x_center,y_center + self.y_step_size/2.0);
-        let (x_b,y_b) = (x_center+self.x_step_size/2.0,y_center);
-        let (x_c,y_c) = (x_center,y_center - self.y_step_size/2.0);
-        let (x_d,y_d) = (x_center-self.x_step_size/2.0,y_center);
-        points.push((x_a,y_a,"red"));
-        points.push((x_b,y_b,"green"));
-        points.push((x_c,y_c,"blue"));
-        points.push((x_d,y_d,"yellow"));
-        points.push((x_center,y_center,"pink"));
-
-        let corners = match self.find_corners((x_center,y_center)){
-            Corners::Four(corner_0,corner_1,corner_2,corner_3) => {vec![corner_0,corner_1,corner_2,corner_3]}
-            Corners::Two(corner_0,corner_1) => {vec![corner_0,corner_1]}
-            Corners::One(corner_0) => {vec![corner_0]}
-            Corners::None => {vec![]}
-        };
-
-        let mut file = File::create("interp_points").expect("Couldn't create the pretty picture file");
-        write!(file, "{:?}",points).expect("Failed to write pretty picture ");
+        plot.add(&frame);
+        plot.add(&grid_numbers);
+        plot.add(&grid_points);
+        plot.add(&extra_point);
+        plot.add(&corner)
+            .set_figure_size_inches(10.0,10.0)
+            .set_num_ticks_y(self.y_num+1)
+            .set_num_ticks_x(self.x_num+1)
+            .grid_labels_legend("x", "y");
 
 
     }
+
+}
+
+pub enum PlotPoint{
+    No,
+    Given(f64,f64),
+    Random,
 }
 
 

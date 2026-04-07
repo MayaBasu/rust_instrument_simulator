@@ -1,8 +1,8 @@
+use plotpy::Plot;
 use uvex_fitrs::*;
-
-
+use crate::coordinate_system::CoordinateSystem;
 use crate::fits2::{fits_path, fits_path2, open_fits};
-use crate::grid::Grid;
+use crate::grid::{Grid, PlotPoint};
 use crate::instrument::{Instrument, spectral_resolution};
 
 
@@ -10,7 +10,7 @@ use crate::sources::{PointSource, SourceList};
 use crate::uvex_details::UVEX_Details;
 mod objects;
 mod uvex;
-mod hallucinate;
+
 mod effects;
 mod instrument;
 mod sources;
@@ -22,15 +22,45 @@ mod uvex_details;
 
 mod data_frame;
 mod grid;
-mod field_of_view;
+mod coordinate_system;
+mod data;
 
 fn main() {
 
-    let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
+
+
+    //let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
     let mut grid = uvex::empty_fuv();
-    grid.load_data_frames(fuv_path, ("XPOS", "YPOS"), (64, 64), (6.4, 6.4));
-    grid.validate();
-  
+    let mut plot = Plot::new();
+    let mut legend = plot.legend();
+    grid.plot(&mut plot,PlotPoint::Given(-2.06,-1.76));
+
+    plot.show("figure.svg").expect("lskjef");
+
+
+    //grid.load_data_frames(fuv_path, ("XPOS", "YPOS"), (64, 64), (6.4, 6.4));
+   // grid.validate();
+
+
+
+    let coord = CoordinateSystem{
+        x_axis: (1.0,0.0),
+        y_axis: (0.0,1.0),
+        center: (0.0, 0.0),
+        color: "red".to_string(),
+        label: "regular".to_string(),
+    };
+
+    let coord2 = CoordinateSystem{
+        x_axis: (1.0,0.3),
+        y_axis: (2.0,1.0),
+        center: (0.0, 0.0),
+        color: "green".to_string(),
+        label: "off".to_string(),
+    };
+   // CoordinateSystem::plot_coordinate_systems(vec![&coord,&coord2])
+
+
 
 
    // let details = uvex_details::UVEX_Details::default("details.yaml");

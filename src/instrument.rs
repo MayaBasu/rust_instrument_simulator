@@ -19,7 +19,7 @@ use crate::fits2;
 use crate::fits2::{fits_path, open_fits};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use crate::grid::{Data, Grid};
+use crate::grid::{ Grid};
 
 pub const spectral_resolution:usize  = 2;
 pub const spatial_resolution:usize  = 4;
