@@ -3,17 +3,19 @@ use std::path::PathBuf;
 use std::slice::Iter;
 use serde::{Deserialize, Serialize};
 use uvex_fitrs::{Fits, FitsData, FitsDataArray, Hdu, HeaderValue};
+use crate::coordinate_system::CoordinateSystem;
 use crate::grid::Grid;
 use crate::sources::{PointSource, SourceList};
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
-pub struct DataFrame {
+pub struct PSF {
     pub path: PathBuf,
     pub data: Vec<Vec<f32>>,
     pub x_pixels: usize,
     pub y_pixels: usize,
     pub center: (f64,f64),
     pub size: (f64,f64),
+    pub coordinate_system: CoordinateSystem,
 }
 
 pub struct DataFile {
@@ -29,8 +31,8 @@ pub enum Load{
     FromValue(f64)
 }
 
-impl DataFrame{
-    pub fn load_file(file:DataFile,center:(Load,Load),size:(Load,Load)) -> DataFrame{
+impl PSF {
+    pub fn load_file(file:DataFile,center:(Load,Load),size:(Load,Load),coordinate_system: CoordinateSystem) -> PSF {
         println!("Loading {:?} into a DataFrame from {:?}",file.description,file.path);
         let fits = Fits::open(file.path.clone()).expect("Failed to open FITS file");
         let primary_hdu= fits.iter().next().expect("Couldn't find primary HDU");
@@ -43,24 +45,21 @@ impl DataFrame{
         assert_eq!(shape[1], file.y_pixels,"Diva down! Tried to load a file with data of the wrong y size");
 
 
-        let center_x:f64 = DataFrame::load(center.0,&primary_hdu);
-        let center_y:f64 = DataFrame::load(center.1,&primary_hdu);
-        let size_x:f64 = DataFrame::load(size.0,&primary_hdu);
-        let size_y:f64 = DataFrame::load(size.1,&primary_hdu);
+        let center_x:f64 = PSF::load(center.0, &primary_hdu);
+        let center_y:f64 = PSF::load(center.1, &primary_hdu);
+        let size_x:f64 = PSF::load(size.0, &primary_hdu);
+        let size_y:f64 = PSF::load(size.1, &primary_hdu);
         let data = data.chunks(file.x_pixels).map(|i| i.to_vec()).collect();
-        DataFrame{
+        PSF {
             path: file.path,
             data,
             x_pixels: file.x_pixels,
             y_pixels: file.y_pixels,
             center: (center_x,center_y),
             size: (size_x,size_y),
+            coordinate_system,
         }
     }
-
-
-
-
     pub fn snap_to_grid(&self, grid: &Grid) -> usize{
         let index = grid.snap(self.center);
         index
@@ -108,3 +107,7 @@ impl DataFrame{
         output_sources
     }
 }
+
+
+
+

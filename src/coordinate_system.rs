@@ -1,11 +1,16 @@
-
-use plotpy::{Curve, Legend, Plot, StrError};
-
-
+use plotpy::{Curve, Legend, Plot};
+use serde::{Deserialize, Serialize};
+use crate::point::Point;
 
 #[derive(Clone, Debug)]
+pub enum Coordinates {
+    ABSOLUTE,
+    RELATIVE(CoordinateSystem),
+}
+
+#[derive(Clone, Debug,Serialize,Deserialize)]
 pub struct CoordinateSystem{
-    pub(crate) x_axis: (f64, f64),
+    pub x_axis: (f64, f64),
     pub y_axis: (f64,f64),
     pub center: (f64,f64),
     pub color: String,
@@ -21,13 +26,26 @@ impl CoordinateSystem{
             color,
             label,
         }
-        
     }
+    pub fn point_from_absolute(&self, point:Point) -> Point{
+        match point.coordinates{
+            Coordinates::ABSOLUTE => {
+                let proj_x = point.x*self.x_axis.0 + point.y*self.x_axis.1;
+                let proj_y = point.x*self.y_axis.0 + point.y*self.y_axis.1;
+                Point::new(proj_x,proj_y,Coordinates::RELATIVE(self.clone()))
+            }
+            Coordinates::RELATIVE(_) => {panic!("tried to from_absolute a point in a not absolute coordinate system :( ")}
+        }
+
+    }
+
+
+
     pub(crate) fn plot(&self) -> (Curve, Curve){
         let mut x_axis = Curve::new();
         x_axis.set_line_width(2.0);
         x_axis.set_line_color(self.color.as_str());
-        x_axis.set_label(self.label.as_str());
+        x_axis.set_label(format!("x axis for {:?}",self.label).as_str());
 
         x_axis.points_begin();
         x_axis.points_add(self.center.0,self.center.1);
@@ -36,21 +54,25 @@ impl CoordinateSystem{
 
 
         let mut y_axis = Curve::new();
-        y_axis.set_line_width(2.0);
+        y_axis.set_line_width(1.0);
         y_axis.set_line_color(self.color.as_str());
+        y_axis.set_label(format!("y axis for {:?}",self.label).as_str());
+
         y_axis.points_begin();
         y_axis.points_add(self.center.0,self.center.1);
         y_axis.points_add(self.y_axis.0, self.y_axis.1);
         y_axis.points_end();
 
         (x_axis,y_axis)
-
-        
     }
 
-    pub fn plot_coordinate_systems(coordinate_systems: Vec<&CoordinateSystem>,plot:&mut Plot){
-        let curves:Vec<(Curve,Curve)> = coordinate_systems.iter().map(|coordinate_system: &&CoordinateSystem|
-        coordinate_system.plot()).collect();
+    pub fn plot_coordinate_systems(coordinates: Vec<&Coordinates>,plot:&mut Plot){
+        let curves:Vec<(Curve,Curve)> = coordinates.iter().map(|coordinates: &&Coordinates|
+            match coordinates{
+                Coordinates::ABSOLUTE => {panic!("TODO")}
+                Coordinates::RELATIVE(coordinate_system) => {coordinate_system.plot()}
+            }
+        ).collect();
 
         let mut legend = Legend::new();
         legend.draw();

@@ -1,9 +1,7 @@
 use plotpy::Plot;
-use uvex_fitrs::*;
-use crate::coordinate_system::CoordinateSystem;
-use crate::fits2::{fits_path, fits_path2, open_fits};
+use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::grid::{Grid, PlotPoint};
-use crate::instrument::{Instrument, spectral_resolution};
+
 
 
 use crate::sources::{PointSource, SourceList};
@@ -20,10 +18,12 @@ mod uvex_details;
 
 
 
-mod data_frame;
+mod psf;
 mod grid;
 mod coordinate_system;
-mod data;
+mod psf_grid;
+mod point;
+mod detector;
 
 fn main() {
 
@@ -31,16 +31,23 @@ fn main() {
 
     //let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
 
+    /*
     let mut grid = uvex::empty_fuv();
-    let coords = CoordinateSystem::new((1.0,0.0),(0.0,1.0), (0.0,0.0),"detecro".to_string(),"black".to_string());
-    let mut detector = Grid::new_empty((10,10), (0.05,0.05),(0.0,0.0), (0.001),coords);
+    let coords = CoordinateSystem::new((1.0,0.2),(-0.2,1.0), (0.0,0.0),"detecro".to_string(),"black".to_string());
+    let mut detector = Grid::new_empty((10,10), (0.05,0.05),(0.0,0.0), (0.001),Coordinates::RELATIVE(coords));
 
     let point = detector.random();
     let mut plot = Plot::new();
-    grid.plot(&mut plot,PlotPoint::Given(point.0,point.1));
-    detector.plot(&mut plot, PlotPoint::Given(point.0,point.1));
+    grid.plot(&mut plot,PlotPoint::Given(point.x,point.y));
+    detector.plot(&mut plot, PlotPoint::Given(point.x,point.y));
 
     plot.show("figure.svg").expect("lskjef");
+    
+     */
+
+
+
+
 
 
     //grid.load_data_frames(fuv_path, ("XPOS", "YPOS"), (64, 64), (6.4, 6.4));

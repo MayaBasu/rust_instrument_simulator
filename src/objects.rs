@@ -35,6 +35,10 @@ impl TelescopeObject {
     //TODO remove recipient/effect/turn Off/On effect etc
 }
 
+pub struct Detector{
+
+}
+
 
 
 

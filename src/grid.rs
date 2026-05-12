@@ -1,7 +1,7 @@
 use plotpy::{Curve, Plot, Text};
-use crate::coordinate_system::CoordinateSystem;
+use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use rand::RngExt;
-
+use crate::point::Point;
 
 pub enum Corners{
     Four(usize,usize,usize,usize),
@@ -14,10 +14,9 @@ pub enum Location{
 }
 
 
-
 #[derive(Debug,Clone)]
 pub struct Grid {
-    pub coordinate_system: CoordinateSystem,
+    pub coordinates: Coordinates,
 
     pub x_num: usize,
     pub y_num: usize,
@@ -36,7 +35,7 @@ pub struct Grid {
     pub snap_precision: f64,
 
     pub label: String,
-    valid: bool,
+
 }
 
 impl Grid{
@@ -44,7 +43,7 @@ impl Grid{
                      (x_step_size,y_step_size): (f64,f64),
                     center: (f64,f64),
                     snap_precision: f64,
-                     coordinate_system: CoordinateSystem,
+                     coordinates: Coordinates,
     ) -> Grid{
         let x_size = x_step_size*(x_num-1)as f64;
         let y_size = y_step_size*(y_num-1)as f64;
@@ -53,7 +52,7 @@ impl Grid{
         let corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
         assert!(snap_precision<0.5);
         Grid{
-            coordinate_system,
+            coordinates,
             x_num,
             x_step_size,
             x_size,
@@ -65,7 +64,6 @@ impl Grid{
             corner,
             snap_precision,
             label: "".to_string(),
-            valid: false,
         }
     }
 
@@ -85,13 +83,22 @@ impl Grid{
         y_index*self.x_num + x_index
     }
 
-    pub fn location(&self, grid_number:usize) -> (f64,f64){
+    pub fn relative_location(&self, grid_number:usize) -> Point {
+        
         assert!((grid_number <= self.x_num*self.y_num-1)&&(grid_number >= 0));
         let (x_corner,y_corner) = self.corner;
         let (x_index,y_index) = self.xy_indices(grid_number);
-        (x_corner + x_index as f64 *self.x_step_size,
-         y_corner + y_index as f64 *self.y_step_size)
+        let (x,y) = (x_corner + x_index as f64 *self.x_step_size, y_corner + y_index as f64 *self.y_step_size);
+        println!("relatice location is {:?}",(x,y));
+        Point::new(x,y,self.coordinates.clone())
     }
+
+    pub fn absolute_location(&self, grid_number:usize) -> Point{
+        let location = self.relative_location(grid_number);
+        location.to_absolute()
+    }
+
+
     pub fn snap(&self,point:(f64,f64))-> usize{
         let (x_mod,y_mod,x_residual,y_residual) = self.fit_grid(point);
         if (x_residual.abs() >= self.snap_precision)  | (y_residual.abs() >= self.snap_precision){
@@ -100,13 +107,13 @@ impl Grid{
         self.grid_number(x_mod,y_mod)
     }
 
-    pub fn random(&self)-> (f64,f64){
+    pub fn random(&self)-> Point{
         let mut rng = rand::rng();
         let x_scale: f64 = rng.random();
         let y_scale: f64 = rng.random();
-        let point = (self.corner.0 + self.x_size*x_scale, self.corner.1 + self.y_size*y_scale);
-        println!("Randomly generating point {:?} within the grid",point);
-        point
+        let (x,y) = (self.corner.0 + self.x_size*x_scale, self.corner.1 + self.y_size*y_scale);
+        println!("Randomly generating point {:?} within the grid",(x,y));
+        Point::new(x,y,self.coordinates.clone())
     }
 
     pub fn fit_grid(&self, point:(f64,f64))->(usize,usize,f64,f64){
@@ -205,7 +212,7 @@ impl Grid{
         let (upper_x,lower_x) = if x_residual < 0.0{ (x_mod,x_mod-1) }else{ (x_mod+1, x_mod)};
         let (upper_y,lower_y) = if y_residual < 0.0{ (y_mod,y_mod-1) }else{ (y_mod+1, y_mod)};
 
-        println!("Finding four corners");
+        println!("Finding four corners, enumerated clockwise starting top left");
         Corners::Four(self.grid_number(lower_x,upper_y),
                       self.grid_number(upper_x,upper_y),
                       self.grid_number(upper_x,lower_y),
@@ -214,7 +221,7 @@ impl Grid{
     }
 
     pub fn plot(&self,plot:&mut Plot,add_point:PlotPoint){
-        CoordinateSystem::plot_coordinate_systems(vec![&self.coordinate_system],plot);
+        CoordinateSystem::plot_coordinate_systems(vec![&self.coordinates],plot);
 
         let mut grid_points = Curve::new();
         grid_points.set_line_style("none")
@@ -259,10 +266,10 @@ impl Grid{
 
         grid_points.points_begin();
         for point in 0..self.num_points{
-            let point_location = self.location(point);
-            grid_points.points_add(point_location.0, point_location.1);
+            let point_location = self.absolute_location(point);
+            grid_points.points_add(point_location.x, point_location.y);
             let label = format!("{}",point);
-            grid_numbers.draw(point_location.0, point_location.1, label.as_str());
+            grid_numbers.draw(point_location.x, point_location.y, label.as_str());
         }
         grid_points.points_end();
 
@@ -279,7 +286,9 @@ impl Grid{
         match add_point {
             PlotPoint::No => {}
             PlotPoint::Given(x, y) => { example_point.push((x,y))}
-            PlotPoint::Random => { example_point.push(self.random()); }
+            PlotPoint::Random => {
+                let random = self.random();
+                example_point.push((random.x,random.y)); }
         };
 
         for point in example_point{
@@ -306,8 +315,8 @@ impl Grid{
             frame.points_begin();
             for point in frame_points{
                 println!("point {point}");
-                let point = self.location(point);
-                frame.points_add(point.0,point.1);
+                let point = self.absolute_location(point);
+                frame.points_add(point.x,point.y);
             }
 
             frame.points_end();

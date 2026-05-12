@@ -1,4 +1,4 @@
-use crate::coordinate_system::CoordinateSystem;
+use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::objects::TelescopeObject;
 use crate::instrument::Instrument;
 use crate::uvex_details::{FUV_DETAILS, NUV_DETAILS, SPECTROGRAPH_DETAILS, TMA_Details, UVEX_Details};
@@ -19,7 +19,7 @@ pub fn empty_fuv()->Grid{
         (0.2,0.2), //x_step_size
         (-0.56, -0.06), //y_num
         0.01, //y_step_size
-        coord
+        Coordinates::RELATIVE(coord)
     );
     grid.label = "fuv".to_string();
     grid
