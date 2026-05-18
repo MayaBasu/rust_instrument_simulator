@@ -1,6 +1,6 @@
 use crate::coordinate_system::{Coordinates};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Point{
     pub(crate) x: f64,
     pub(crate) y: f64,
@@ -21,7 +21,7 @@ impl Point{
             }
         }
     }
-    pub fn convert(&self, coordinate_system: Coordinates) -> Point{
+    pub fn convert(&self, coordinate_system: &Coordinates) -> Point{
         let absolute = self.to_absolute();
         match coordinate_system{
             Coordinates::ABSOLUTE => { absolute }

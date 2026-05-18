@@ -2,6 +2,7 @@ use plotpy::{Curve, Plot, Text};
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use rand::RngExt;
 use crate::point::Point;
+use crate::psf::PSF;
 
 pub enum Corners{
     Four(usize,usize,usize,usize),
@@ -11,6 +12,10 @@ pub enum Corners{
 pub enum Location{
     Outside,
     Inside,
+}
+pub enum Bin{
+    Binned(usize,usize),
+    Outside,
 }
 
 
@@ -84,7 +89,7 @@ impl Grid{
     }
 
     pub fn relative_location(&self, grid_number:usize) -> Point {
-        
+
         assert!((grid_number <= self.x_num*self.y_num-1)&&(grid_number >= 0));
         let (x_corner,y_corner) = self.corner;
         let (x_index,y_index) = self.xy_indices(grid_number);
@@ -112,14 +117,16 @@ impl Grid{
         let x_scale: f64 = rng.random();
         let y_scale: f64 = rng.random();
         let (x,y) = (self.corner.0 + self.x_size*x_scale, self.corner.1 + self.y_size*y_scale);
-        println!("Randomly generating point {:?} within the grid",(x,y));
+        //println!("Randomly generating point {:?} within the grid",(x,y));
         Point::new(x,y,self.coordinates.clone())
     }
 
     pub fn fit_grid(&self, point:(f64,f64))->(usize,usize,f64,f64){
         //ensure that the point is within the grid
         match self.inside_or_outside(point) {
-            Location::Outside => {panic!("Tried to grid a point that was outside of the grid")}
+            Location::Outside => {
+                println!("Tried to grid point {:?}",point);
+                panic!("Tried to grid a point that was outside of the grid")}
             Location::Inside => {}
         }
         //find the nearest point and then return the residuals to it
@@ -128,11 +135,11 @@ impl Grid{
         let (corner_x,corner_y) = self.corner;
         let delta_x = x - corner_x;
         let delta_y = y - corner_y;
-        println!("delta x and delta y are {:?}, {:?}",delta_x,delta_y);
+      //  println!("delta x and delta y are {:?}, {:?}",delta_x,delta_y);
         let x_scaled_residual = delta_x/self.x_step_size - (delta_x/self.x_step_size).floor();
         let y_scaled_residual = delta_y/self.y_step_size - (delta_y/self.y_step_size).floor();
 
-        println!("residuals are {:?}, {:?}",x_scaled_residual,y_scaled_residual);
+       // println!("residuals are {:?}, {:?}",x_scaled_residual,y_scaled_residual);
 
         let (x_mod, x_residual) = if x_scaled_residual <= 0.5{
             let x_mod = (delta_x/self.x_step_size).floor() as usize;
@@ -156,10 +163,111 @@ impl Grid{
             (y_mod,y_residual)
         };
 
-        println!("{:?}",(x_mod,y_mod,x_residual,y_residual));
+     //   println!("{:?}",(x_mod,y_mod,x_residual,y_residual));
+        //residuals should be between -0.5 and 0.5 times the grid width
 
         (x_mod,y_mod,x_residual,y_residual)
     }
+//TODO remove redundancey of these two functions
+    pub fn fit_grid_unscaled(&self, point:(f64,f64))->(usize,usize,f64,f64){
+        //ensure that the point is within the grid
+        match self.inside_or_outside(point) {
+            Location::Outside => {
+                println!("Tried to grid point {:?}",point);
+                panic!("Tried to grid a point that was outside of the grid")}
+            Location::Inside => {}
+        }
+        //find the nearest point and then return the residuals to it
+
+        let (x,y) = point;
+        let (corner_x,corner_y) = self.corner;
+
+        let delta_x = x - corner_x;
+        let delta_y = y - corner_y;
+        println!("DELTAS ARE {:?}",(delta_x,delta_y));
+        //  println!("delta x and delta y are {:?}, {:?}",delta_x,delta_y);
+        let x_scaled_residual = delta_x/self.x_step_size - (delta_x/self.x_step_size).floor();
+        let y_scaled_residual = delta_y/self.y_step_size - (delta_y/self.y_step_size).floor();
+
+        // println!("residuals are {:?}, {:?}",x_scaled_residual,y_scaled_residual);
+
+        let (x_mod, x_residual) = if x_scaled_residual <= 0.5{
+            let x_mod = (delta_x/self.x_step_size).floor() as usize;
+            let x_residual = x_scaled_residual;
+
+            (x_mod,x_residual)
+
+        }else{
+            let x_mod = (delta_x/self.x_step_size).floor() as usize + 1;
+            let x_residual = (x_scaled_residual-1.0);
+            (x_mod,x_residual)
+        };
+
+        let (y_mod,y_residual) = if y_scaled_residual <=0.5{
+            let y_mod = (delta_y/self.y_step_size).floor() as usize;
+            let y_residual = y_scaled_residual;
+            (y_mod,y_residual)
+        }else{
+            let y_mod = (delta_y/self.y_step_size).floor() as usize + 1;
+            let y_residual = (y_scaled_residual-1.0);
+            (y_mod,y_residual)
+        };
+
+        //   println!("{:?}",(x_mod,y_mod,x_residual,y_residual));
+        //residuals should be between -0.5 and 0.5 times the grid width
+
+        (x_mod,y_mod,x_residual,y_residual)
+    }
+
+    pub fn bin_up_patch(&self, center_of_the_corner_pixel:Point,psf:&Vec<Vec<f32>>,scale:usize)-> ((usize,usize),Vec<Vec<f32>>){ //TODO make this grid dependent
+        let Point{x,y,..} = center_of_the_corner_pixel.convert(&self.coordinates);
+        let center_of_the_corner_pixel = (x,y);
+
+        let (x_mod,y_mod,x_residual,y_residual) = self.fit_grid_unscaled(center_of_the_corner_pixel);
+        //unscaled returns the raction of the pixel
+        //TODO remove assumption that the psf is sven by even!!!
+        //TODO remove the assumption that the scale is an intege
+        //scale is the number of little pixels of the psf that fit into one big detector pixel
+        //x direction
+        let x_pixels = 64; //TODO
+        let y_pixels = 64;
+        let scale = scale as f64;
+        let x_tail_end_in_pixels = x_residual*scale + scale/2.0 - 1.0;
+        let y_tail_end_in_pixels = y_residual*scale + scale/2.0 - 1.0;
+        let x_offset = if x_tail_end_in_pixels < 0.0{ 0 }else{
+            x_tail_end_in_pixels.ceil() as usize
+        };
+        let y_offset = if y_tail_end_in_pixels < 0.0{ 0 }else{
+            y_tail_end_in_pixels.ceil() as usize
+        };
+
+        let binned_x_size = if x_offset > 0{
+            (x_pixels as f64/scale + 1.0) as usize
+        }else{
+            (x_pixels as f64/scale)  as usize
+        };
+
+        let binned_y_size = if y_offset > 0{
+            (y_pixels as f64/scale + 1.0) as usize
+        }else{
+            (y_pixels as f64/scale)  as usize
+        };
+        println!("Binned x size, y size is {:?}",((x_pixels as f64/scale).ceil() as usize + 1,(y_pixels as f64/scale).ceil() as usize + 1));
+
+        let mut binned_psf = vec![vec![0.0;(x_pixels as f64/scale).ceil() as usize + 1];(y_pixels as f64/scale).ceil() as usize + 1];
+        for y in 0..y_pixels{
+            for x in 0..x_pixels{
+                let binned_x_index:usize = ((x + x_offset) as f64/scale).floor() as usize;
+                let binned_y_index:usize = ((y + y_offset) as f64/scale).floor() as usize;
+                binned_psf[binned_y_index][binned_x_index] += psf[y][x];
+            }
+        }
+        println!(" {:?} MODULUSES ER {:?}",center_of_the_corner_pixel,(x_mod,y_mod));
+        ((x_mod,y_mod),binned_psf)
+
+    }
+
+
 
 
 
@@ -171,7 +279,7 @@ impl Grid{
         let (grid_y_min, grid_y_max) = (corner_y, corner_y + self.y_size);
 
         if (x < grid_x_min - epsilon) | (x > grid_x_max + epsilon) | (y < grid_y_min - epsilon) | (y > grid_y_max + epsilon){
-            println!("Point was outside of the grid");
+            println!("Point was outside of the grid, min x is {grid_x_min}, max x is {grid_x_max}, min y is {grid_y_min}, max y is {grid_y_max}");
             return Location::Outside
         };
         Location::Inside
@@ -186,12 +294,12 @@ impl Grid{
 
         //first we check to see if it is most appropriate to snap this point to a grid point:
         if (x_residual.abs() <= epsilon) && (y_residual.abs() <= epsilon) {
-            println!("Snapped to grid point");
+           // println!("Snapped to grid point");
             return Corners::One(self.grid_number(x_mod,y_mod))
         };
         //Is the point between two vertical grid points?
         if (x_residual.abs() <= epsilon) {
-            println!("Snapped between vertical points");
+            //println!("Snapped between vertical points");
             if y_residual < 0.0{
                 return Corners::Two(self.grid_number(x_mod,y_mod),self.grid_number(x_mod,y_mod-1));
             }else{
@@ -200,7 +308,7 @@ impl Grid{
         };
         //Is the point between two horizontal grid points?
         if (y_residual.abs() <= epsilon) {
-            println!("Snapped between horizontal points");
+          //  println!("Snapped between horizontal points");
             if x_residual < 0.0{
                 return Corners::Two(self.grid_number(x_mod,y_mod),self.grid_number(x_mod-1,y_mod));
             }else{
@@ -212,7 +320,7 @@ impl Grid{
         let (upper_x,lower_x) = if x_residual < 0.0{ (x_mod,x_mod-1) }else{ (x_mod+1, x_mod)};
         let (upper_y,lower_y) = if y_residual < 0.0{ (y_mod,y_mod-1) }else{ (y_mod+1, y_mod)};
 
-        println!("Finding four corners, enumerated clockwise starting top left");
+       // println!("Finding four corners, enumerated clockwise starting top left");
         Corners::Four(self.grid_number(lower_x,upper_y),
                       self.grid_number(upper_x,upper_y),
                       self.grid_number(upper_x,lower_y),

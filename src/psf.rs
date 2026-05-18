@@ -15,7 +15,6 @@ pub struct PSF {
     pub y_pixels: usize,
     pub center: (f64,f64),
     pub size: (f64,f64),
-    pub coordinate_system: CoordinateSystem,
 }
 
 pub struct DataFile {
@@ -32,7 +31,7 @@ pub enum Load{
 }
 
 impl PSF {
-    pub fn load_file(file:DataFile,center:(Load,Load),size:(Load,Load),coordinate_system: CoordinateSystem) -> PSF {
+    pub fn load_file(file:DataFile,center:(Load,Load),size:(Load,Load)) -> PSF {
         println!("Loading {:?} into a DataFrame from {:?}",file.description,file.path);
         let fits = Fits::open(file.path.clone()).expect("Failed to open FITS file");
         let primary_hdu= fits.iter().next().expect("Couldn't find primary HDU");
@@ -57,7 +56,6 @@ impl PSF {
             y_pixels: file.y_pixels,
             center: (center_x,center_y),
             size: (size_x,size_y),
-            coordinate_system,
         }
     }
     pub fn snap_to_grid(&self, grid: &Grid) -> usize{
@@ -80,6 +78,24 @@ impl PSF {
             Load::FromValue(value) => value
         }
     }
+/*
+
+    pub fn downsample(&self, x_offset:f64, y_offset:f64, scale:f64)-> Vec<Vec<f32>>{
+        //scale is the wdith of one big pixel in terms of little pixels
+        //how many pixels from the lower corner is the corner of the psf
+        //TODO PSF must be square
+        assert_eq!(self.x_pixels % 2 , self.y_pixels % 2 );
+        
+        match (self.x_pixels % 2 == 0 ){
+            true => {}
+            false => {
+                //for an odd number of pixels in the psf the center of the psf and the center of the point 
+            }
+        }
+
+    }
+    
+ */
     /*
 
     pub fn calculate_pixel_locations(&self) {

@@ -18,7 +18,7 @@ pub fn empty_fuv()->Grid{
         (18,18), //x_num
         (0.2,0.2), //x_step_size
         (-0.56, -0.06), //y_num
-        0.01, //y_step_size
+        0.1, //y_step_size
         Coordinates::RELATIVE(coord)
     );
     grid.label = "fuv".to_string();

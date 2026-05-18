@@ -1,9 +1,9 @@
 use plotpy::Plot;
+use rand::RngExt;
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::grid::{Grid, PlotPoint};
-
-
-
+use crate::point::Point;
+use crate::psf_grid::PsfGrid;
 use crate::sources::{PointSource, SourceList};
 use crate::uvex_details::UVEX_Details;
 mod objects;
@@ -29,28 +29,62 @@ fn main() {
 
 
 
-    //let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
-
-    /*
+    let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
     let mut grid = uvex::empty_fuv();
-    let coords = CoordinateSystem::new((1.0,0.2),(-0.2,1.0), (0.0,0.0),"detecro".to_string(),"black".to_string());
-    let mut detector = Grid::new_empty((10,10), (0.05,0.05),(0.0,0.0), (0.001),Coordinates::RELATIVE(coords));
-
-    let point = detector.random();
     let mut plot = Plot::new();
-    grid.plot(&mut plot,PlotPoint::Given(point.x,point.y));
-    detector.plot(&mut plot, PlotPoint::Given(point.x,point.y));
+    //grid.plot(&mut plot,PlotPoint::Given(0.0,0.0));
+    //plot.show("ksenf").expect("hHHHHHH");
+    let mut psf_grid = PsfGrid::new(grid);
+    psf_grid.load_data_frames(fuv_path, ("XFLD", "YFLD"), (64, 64), (6.4, 6.4));
+    psf_grid.validate();
 
-    plot.show("figure.svg").expect("lskjef");
-    
+    let mut points = Vec::new();
+    /*
+    for i in 0..psf_grid.grid.num_points{
+        let (x,y) = psf_grid.grid.xy_indices(i);
+        let x_pos = (3000/psf_grid.grid.x_num)*x + 500;
+        let y_pos = (3000/psf_grid.grid.y_num)*y + 500;
+        matrices.push(((x_pos,y_pos),psf_grid.grid_psf(i)));
+    }
+
      */
+   // println!("AMMMMMMMMM ");
+    let detector = &mut detector::detector::new_uvex();
+    for i in 1..100000{ //100000
+
+       // println!("AMMMMMMMMM {:?}",psf_grid.grid.random());
+
+        let point = detector.grid.random();
+        let mut rng = rand::rng();
+        let luminosity:f32 = rng.random();
+        points.push((point,luminosity*10000.0));
+        println!("Luminosity is {:?}",luminosity);
+
+    }
+
+    let example_psf = psf_grid.grid_psf(1);
+    println!("points {:?}",points.len());
+
+    let detector = &mut detector::detector::new_uvex();
+    detector.show_read_out(points,psf_grid);
 
 
 
 
 
+   // let coords = CoordinateSystem::new((1.0,0.2),(-0.2,1.0), (0.0,0.0),"detecro".to_string(),"black".to_string());
+    //let mut detector = Grid::new_empty((10,10), (0.05,0.05),(0.0,0.0), (0.001),Coordinates::RELATIVE(coords));
 
-    //grid.load_data_frames(fuv_path, ("XPOS", "YPOS"), (64, 64), (6.4, 6.4));
+    //let point = detector.random();
+    //let mut plot = Plot::new();
+    //grid.plot(&mut plot,PlotPoint::Given(point.x,point.y));
+    //detector.plot(&mut plot, PlotPoint::Given(point.x,point.y));
+
+    //plot.show("figure.svg").expect("lskjef");
+
+
+
+
    // grid.validate();
 
 

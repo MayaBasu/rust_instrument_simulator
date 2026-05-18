@@ -1,22 +1,32 @@
 use std::fs;
 use crate::coordinate_system::CoordinateSystem;
 use crate::grid::{Corners, Grid};
+use crate::point::Point;
 use crate::psf::{DataFile, PSF, Load};
 
 
 pub struct PsfGrid {
     data: Vec<(usize,PSF)>,
-    grid: Grid,
+    pub(crate) grid: Grid,
     valid: bool
 }
 
 impl PsfGrid{
-    pub fn load_data_frames(&mut self, directory_path:&str, center_fits_keys:(&str, &str), pixels:(usize, usize), size:(f64, f64),coordinate_system: CoordinateSystem){
+    pub fn new(grid:Grid)-> PsfGrid{
+        PsfGrid{
+            data: vec![],
+            grid: grid,
+            valid:false,
+
+        }
+    }
+    pub fn load_data_frames(&mut self, directory_path:&str, center_fits_keys:(&str, &str), pixels:(usize, usize), size:(f64, f64)){
             println!("Loading data frames into grid. This overwrites any data previously loaded");
             let mut data = vec![];
             let paths = fs::read_dir(directory_path).unwrap();
             let mut counter = 0;
             for path in paths {
+                println!("loading {:?}",path);
                 counter += 1;
                 let path = path.unwrap().path();
                 let (x_pixels,y_pixels) = pixels;
@@ -28,11 +38,12 @@ impl PsfGrid{
                 };
                 let frame = PSF::load_file(data_file,
                                            (Load::FromKey(center_fits_keys.0.to_string()), Load::FromKey(center_fits_keys.1.to_string())),
-                                           (Load::FromValue(size.0),Load::FromValue(size.0)),coordinate_system.clone());
+                                           (Load::FromValue(size.0),Load::FromValue(size.0)));
                 let frame_index = frame.snap_to_grid(&self.grid);
                 data.push((frame_index,frame))
             }
             data.sort_by_key(|x|x.0);
+            self.data = data;
             println!("Loaded {counter} files into a Grid Struct from {directory_path}");
             assert_eq!(counter,self.grid.num_points,"Loaded the wrong number of PSF files");
     }
@@ -66,29 +77,53 @@ impl PsfGrid{
                 }}
 
 
-    pub fn interpolated_psf(&self, point:(f64,f64)) -> Vec<Vec<f32>>{
+    pub fn interpolated_psf(&self, point:&Point) -> Vec<Vec<f32>>{
+        println!("Converting from {:?}", point);
+        let Point{x,y, .. } = point.convert(&self.grid.coordinates);
+        println!("To {:?}",(x,y));
+
+        let ((Q12, Q22, Q21, Q11),(c11,c12,c21,c22),normalization) = self.interpolation_coefficients((x,y));
+
+        let q11 = self.data[Q11].clone();
+        let q12 = self.data[Q12].clone();
+        let q21 = self.data[Q21].clone();
+        let q22 = self.data[Q22].clone();
+
+        assert_eq!(q11.0,Q11);
+        assert_eq!(q12.0,Q12);
+        assert_eq!(q21.0,Q21);
+        assert_eq!(q22.0,Q22);
+
+        let interpolated_data:Vec<f32> =
+            q11.1.data.into_iter().flatten().zip(
+                q12.1.data.into_iter().flatten().zip(
+                    q21.1.data.into_iter().flatten().zip(
+                        q22.1.data.into_iter().flatten()))).map(
+                |(q11,(q12,(q21,q22)))| {
+                    (q11*c11 as f32 + q12*c12 as f32 + q21*c21 as f32 + q22*c22 as f32)/normalization as f32
+                }).collect();
+        PSF::repack_data(interpolated_data)
+
+
+
+    }
+
+
+
+    pub fn interpolation_coefficients(&self, point:(f64,f64)) -> ((usize,usize,usize,usize),(f64,f64,f64,f64),f64){
         if self.valid == false{
             panic!("Must validate Grid before attempting to interpolate")
         };
 
         match self.grid.find_corners(point){
             Corners::Four(Q12, Q22, Q21, Q11) => { // using the wikipedia convention https://en.wikipedia.org/wiki/Bilinear_interpolation
-                let q11 = self.data[Q11].clone();
-                let q12 = self.data[Q12].clone();
-                let q21 = self.data[Q21].clone();
-                let q22 = self.data[Q22].clone();
 
-                assert_eq!(q11.0,Q11);
-                assert_eq!(q12.0,Q12);
-                assert_eq!(q21.0,Q21);
-                assert_eq!(q22.0,Q22);
-
-                let Q11 = self.grid.relative_location(Q11);
-                let Q22 = self.grid.relative_location(Q22);
+                let Q11point = self.grid.relative_location(Q11);
+                let Q22point = self.grid.relative_location(Q22);
 
 
-                let (x1,y1) = (Q11.x,Q11.y);
-                let (x2,y2) = (Q22.x,Q22.y);
+                let (x1,y1) = (Q11point.x,Q11point.y);
+                let (x2,y2) = (Q22point.x,Q22point.y);
                 let (x,y) = point;
                 let c11 = (x2-x)*(y2-y);
                 let c12 = (x2-x)*(y-y1);
@@ -96,25 +131,19 @@ impl PsfGrid{
                 let c22 = (x-x1)*(y-y1);
                 println!("The coefficients are {:?}",(c11,c12,c21,c22));
                 let normalization = (x2-x1)*(y2-y1);
-                let interpolated_data:Vec<f32> =
-                    q11.1.data.into_iter().flatten().zip(
-                        q12.1.data.into_iter().flatten().zip(
-                            q21.1.data.into_iter().flatten().zip(
-                                q22.1.data.into_iter().flatten()))).map(
-                        |(q11,(q12,(q21,q22)))| {
-                            (q11*c11 as f32 + q12*c12 as f32 + q21*c21 as f32 + q22*c22 as f32)/normalization as f32
-                        }).collect();
-                PSF::repack_data(interpolated_data)
+                ((Q12, Q22, Q21, Q11),(c11,c12,c21,c22),normalization)
 
             }
-            Corners::Two(_, _) => {panic!("implement me please uwu")}
-            Corners::One(index) => {panic!("implement me please uwu")}
+            Corners::Two(Q1, Q2) => {((Q1, Q2, Q1, Q2),(1.0,1.0,1.0,1.0),1.0)} //TODO !!!!
+            Corners::One(Q1) => {((Q1, Q1, Q1, Q1),(1.0,1.0,1.0,1.0),1.0)}
         }
 
+    }
 
-
-
-
+    pub fn grid_psf(&self, index:usize)-> Vec<Vec<f32>>{
+        let (i, psf) = self.data[index].clone();
+        assert_eq!(index,i);
+        psf.data
 
     }
 

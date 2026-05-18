@@ -30,8 +30,9 @@ impl CoordinateSystem{
     pub fn point_from_absolute(&self, point:Point) -> Point{
         match point.coordinates{
             Coordinates::ABSOLUTE => {
-                let proj_x = point.x*self.x_axis.0 + point.y*self.x_axis.1;
-                let proj_y = point.x*self.y_axis.0 + point.y*self.y_axis.1;
+                let proj_x = (point.x*self.x_axis.0 + point.y*self.x_axis.1)/(self.x_axis.0.powi(2) + self.x_axis.1.powi(2));
+                let proj_y = (point.x*self.y_axis.0 + point.y*self.y_axis.1)/(self.y_axis.0.powi(2) + self.y_axis.1.powi(2));
+                println!("{:?} PROJECTIONS ARE {:?}",(self.x_axis.0,self.x_axis.1),(proj_y,proj_x));
                 Point::new(proj_x,proj_y,Coordinates::RELATIVE(self.clone()))
             }
             Coordinates::RELATIVE(_) => {panic!("tried to from_absolute a point in a not absolute coordinate system :( ")}

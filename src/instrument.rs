@@ -103,7 +103,7 @@ impl Instrument{
                 let path = "/Users/mayabasu/RustroverProjects/image_simulator_outline/python_plotting/fits_data";
                 open_fits(fits_path);
                 let fits = File::open(fits_path).expect("PSF can't be opened :((");
-                let fits = unsafe { Mmap::map(&fits)}.expect("couldn't mmap fits");
+                let fits = unsafe { Mmap::map(&fits)}.expect("couldn't mmap fits :(((");
                 let fits_data = &fits[2880..];
                 let mut fits_result: [f32; 17280/4] = [0.0;17280/4];
                 println!("fit's data {:?}",fits_data.len());
