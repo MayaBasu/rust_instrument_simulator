@@ -4,8 +4,9 @@ use crate::instrument::Instrument;
 use crate::uvex_details::{FUV_DETAILS, NUV_DETAILS, SPECTROGRAPH_DETAILS, TMA_Details, UVEX_Details};
 use crate::effects::*;
 use crate::grid::{Grid};
+use crate::point::Point;
 
-pub fn empty_fuv()->Grid{
+pub fn empty_fuv() ->Grid{
 
     let coord = CoordinateSystem{
         x_axis: (1.0,0.0),
@@ -17,7 +18,7 @@ pub fn empty_fuv()->Grid{
     let mut grid = Grid::new_empty(
         (18,18), //x_num
         (0.2,0.2), //x_step_size
-        (-0.56, -0.06), //y_num
+        Point::new(-0.56, -0.06,Coordinates::RELATIVE(coord.clone())), //y_num
         0.1, //y_step_size
         Coordinates::RELATIVE(coord)
     );

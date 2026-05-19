@@ -17,13 +17,13 @@ pub struct detector{
 impl detector{
 
     pub fn new_uvex() -> detector{
-        let num_pixels =3096*3;
-        let pixel_to_deg_scale = 3.5/num_pixels as f64; //Degrees in FOV to pixels
+        let num_pixels =4096*3;
+        let pixel_to_deg_scale = 3.0/num_pixels as f64; //Degrees in FOV to pixels
         let detector_x_axis = (pixel_to_deg_scale,0.0);
         let detector_y_axis = (0.0,pixel_to_deg_scale);
-        let detector_center = (-0.5,0.0);
-        let coordinate_system = CoordinateSystem::new(detector_x_axis,detector_y_axis,detector_center, "Detector 1".to_string(), "magenta".to_string());
-        let grid = Grid::new_empty((num_pixels,num_pixels), (1.0,1.0), (0.0,0.0), 0.01, Coordinates::RELATIVE(coordinate_system));
+        let detector_center = Point::new(-0.5,0.0,Coordinates::ABSOLUTE);
+        let coordinate_system = CoordinateSystem::new(detector_x_axis,detector_y_axis,(-0.5,0.0), "Detector 1".to_string(), "magenta".to_string());
+        let grid = Grid::new_empty((num_pixels,num_pixels), (1.0,1.0), detector_center, 0.01, Coordinates::RELATIVE(coordinate_system));
         let mut data = Vec::with_capacity(num_pixels*num_pixels);
         for _row in 0..num_pixels{
             let mut row_vec = Vec::with_capacity(num_pixels);

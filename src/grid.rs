@@ -45,16 +45,19 @@ pub struct Grid {
 
 impl Grid{
     pub fn new_empty((x_num,y_num): (usize,usize),
-                     (x_step_size,y_step_size): (f64,f64),
-                    center: (f64,f64),
+                     (x_step_size,y_step_size): (f64,f64), //TODO have units for this length
+                    center: Point,
                     snap_precision: f64,
                      coordinates: Coordinates,
     ) -> Grid{
         let x_size = x_step_size*(x_num-1)as f64;
         let y_size = y_step_size*(y_num-1)as f64;
         let num_points = x_num*y_num;
-        let (x_0,y_0) = center;
+        let (x_0,y_0) = center.convert(&coordinates).values();
         let corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
+        println!("Huh?");
+        println!("CORNER IS {:?} for {x_num}",Point::new(corner.0,corner.1,coordinates.clone()).to_absolute());
+        println!("Center is {:?}",(x_0,y_0));
         assert!(snap_precision<0.5);
         Grid{
             coordinates,
@@ -65,7 +68,7 @@ impl Grid{
             y_step_size,
             y_size,
             num_points,
-            center,
+            center:center.values(),
             corner,
             snap_precision,
             label: "".to_string(),
@@ -328,7 +331,7 @@ impl Grid{
 
     }
 
-    pub fn plot(&self,plot:&mut Plot,add_point:PlotPoint){
+    pub fn plot_points(&self, plot:&mut Plot, add_point:PlotPoint){
         CoordinateSystem::plot_coordinate_systems(vec![&self.coordinates],plot);
 
         let mut grid_points = Curve::new();
@@ -439,6 +442,63 @@ impl Grid{
             .set_num_ticks_y(self.y_num+1)
             .set_num_ticks_x(self.x_num+1)
             .grid_labels_legend("x", "y");
+
+
+    }
+
+    pub fn outer_boarder(&self) -> (Point,Point, Point, Point){
+        let (c1x,c1y) = (self.corner.0 -self.x_step_size/2.0, self.corner.1-self.y_step_size/2.0);
+
+        let (c2x,c2y) = (c1x + self.x_size + self.x_step_size, c1y);
+        let (c3x,c3y) = (c1x + self.x_size + self.x_step_size, c1y + self.y_size + self.y_step_size);
+        let (c4x,c4y) = (c1x , c1y + self.y_size + self.y_step_size);
+
+        let point = Point::new(c1x,c1y,self.coordinates.clone());
+        println!("CORNER IS AT {:?}",(self.corner,point.to_absolute()));
+        (Point::new(c1x,c1y,self.coordinates.clone()),
+         Point::new(c2x,c2y,self.coordinates.clone()),
+         Point::new(c3x,c3y,self.coordinates.clone()),
+         Point::new(c4x,c4y,self.coordinates.clone()))
+
+    }
+
+    pub fn plot_outline(&self, plot:&mut Plot, color: &str){
+        CoordinateSystem::plot_coordinate_systems(vec![&self.coordinates],plot);
+
+        let color = match &self.coordinates{ Coordinates::ABSOLUTE => "black", Coordinates::RELATIVE(c)=> c.color.as_str()};
+
+
+        let mut outline = Curve::new();
+        outline.set_line_width(1.0)
+            .set_label(format!("Frame of {:?}",self.label).as_str())
+            .set_line_style("solid")
+            .set_line_width(1.0)
+            .set_marker_color(color)
+            .set_line_color(color)
+            .set_marker_every(1)
+            .set_marker_size(10.0)
+            .set_marker_style(".");
+
+
+
+
+        outline.points_begin();
+
+        let (p0,p1,p2,p3) = self.outer_boarder();
+        let p0 = p0.to_absolute();
+        let p1 = p1.to_absolute();
+        let p2 = p2.to_absolute();
+        let p3 = p3.to_absolute();
+        outline.points_add(p0.x,p0.y);
+        outline.points_add(p1.x,p1.y);
+        outline.points_add(p2.x,p2.y);
+        outline.points_add(p3.x,p3.y);
+        outline.points_add(p0.x,p0.y);
+
+        outline.points_end();
+
+
+        plot.add(&outline);
 
 
     }

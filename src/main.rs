@@ -32,8 +32,13 @@ fn main() {
     let fuv_path = "/Users/mayabasu/Desktop/uvex_psf_files/FUV PSF";
     let mut grid = uvex::empty_fuv();
     let mut plot = Plot::new();
-    //grid.plot(&mut plot,PlotPoint::Given(0.0,0.0));
-    //plot.show("ksenf").expect("hHHHHHH");
+    grid.plot_points(&mut plot, PlotPoint::No);
+    grid.plot_outline(&mut plot, "yellow");
+    let detector = &mut detector::detector::new_uvex();
+    detector.grid.plot_outline(&mut plot, "blue");
+    plot.show("ksenf").expect("hHHHHHH");
+
+
     let mut psf_grid = PsfGrid::new(grid);
     psf_grid.load_data_frames(fuv_path, ("XFLD", "YFLD"), (64, 64), (6.4, 6.4));
     psf_grid.validate();
@@ -49,7 +54,7 @@ fn main() {
 
      */
    // println!("AMMMMMMMMM ");
-    let detector = &mut detector::detector::new_uvex();
+
     for i in 1..100000{ //100000
 
        // println!("AMMMMMMMMM {:?}",psf_grid.grid.random());

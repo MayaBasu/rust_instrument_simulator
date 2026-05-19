@@ -19,6 +19,8 @@ pub struct CoordinateSystem{
 
 impl CoordinateSystem{
     pub fn new(x_axis:(f64,f64),y_axis:(f64,f64),center: (f64,f64),label:String,color:String) -> CoordinateSystem{
+
+
         CoordinateSystem{
             x_axis,
             y_axis,
@@ -44,13 +46,14 @@ impl CoordinateSystem{
 
     pub(crate) fn plot(&self) -> (Curve, Curve){
         let mut x_axis = Curve::new();
+        let scale = 1.0/self.x_axis.0;
         x_axis.set_line_width(2.0);
         x_axis.set_line_color(self.color.as_str());
         x_axis.set_label(format!("x axis for {:?}",self.label).as_str());
 
         x_axis.points_begin();
         x_axis.points_add(self.center.0,self.center.1);
-        x_axis.points_add(self.x_axis.0, self.x_axis.1);
+        x_axis.points_add(self.center.0 + (self.x_axis.0)*scale, self.center.1 + (self.x_axis.1)*scale);
         x_axis.points_end();
 
 
@@ -61,7 +64,7 @@ impl CoordinateSystem{
 
         y_axis.points_begin();
         y_axis.points_add(self.center.0,self.center.1);
-        y_axis.points_add(self.y_axis.0, self.y_axis.1);
+        y_axis.points_add(self.center.0  + (self.y_axis.0)*scale,self.center.1  +  (self.y_axis.1)*scale);
         y_axis.points_end();
 
         (x_axis,y_axis)

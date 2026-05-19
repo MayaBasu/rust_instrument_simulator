@@ -30,4 +30,7 @@ impl Point{
             }
         }
     }
+    pub fn values(&self)-> (f64,f64){
+        (self.x,self.y)
+    }
 }
