@@ -34,8 +34,11 @@ fn main() {
     let mut plot = Plot::new();
     grid.plot_points(&mut plot, PlotPoint::No);
     grid.plot_outline(&mut plot, "yellow");
-    let detector = &mut detector::detector::new_uvex();
-    detector.grid.plot_outline(&mut plot, "blue");
+    let uvex_detector_array = &mut detector::DetectorArray::uvex_detector_array(0.02,0.02);
+    for detector in &uvex_detector_array.detectors{
+        detector.grid.plot_outline(&mut plot, "blue");
+    }
+
     plot.show("ksenf").expect("hHHHHHH");
 
 
@@ -54,6 +57,7 @@ fn main() {
 
      */
    // println!("AMMMMMMMMM ");
+    let detector = &uvex_detector_array.detectors[0];
 
     for i in 1..100000{ //100000
 
@@ -70,20 +74,20 @@ fn main() {
     let example_psf = psf_grid.grid_psf(1);
     println!("points {:?}",points.len());
 
-    let detector = &mut detector::detector::new_uvex();
-    detector.show_read_out(points,psf_grid);
+   // let detector = &mut detector::Detector::new_uvex();
+   // detector.show_read_out(points,psf_grid);
 
 
 
 
 
    // let coords = CoordinateSystem::new((1.0,0.2),(-0.2,1.0), (0.0,0.0),"detecro".to_string(),"black".to_string());
-    //let mut detector = Grid::new_empty((10,10), (0.05,0.05),(0.0,0.0), (0.001),Coordinates::RELATIVE(coords));
+    //let mut Detector = Grid::new_empty((10,10), (0.05,0.05),(0.0,0.0), (0.001),Coordinates::RELATIVE(coords));
 
-    //let point = detector.random();
+    //let point = Detector.random();
     //let mut plot = Plot::new();
     //grid.plot(&mut plot,PlotPoint::Given(point.x,point.y));
-    //detector.plot(&mut plot, PlotPoint::Given(point.x,point.y));
+    //Detector.plot(&mut plot, PlotPoint::Given(point.x,point.y));
 
     //plot.show("figure.svg").expect("lskjef");
 

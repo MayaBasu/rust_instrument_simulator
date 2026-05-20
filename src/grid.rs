@@ -230,7 +230,7 @@ impl Grid{
         //unscaled returns the raction of the pixel
         //TODO remove assumption that the psf is sven by even!!!
         //TODO remove the assumption that the scale is an intege
-        //scale is the number of little pixels of the psf that fit into one big detector pixel
+        //scale is the number of little pixels of the psf that fit into one big Detector pixel
         //x direction
         let x_pixels = 64; //TODO
         let y_pixels = 64;

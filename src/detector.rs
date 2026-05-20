@@ -6,24 +6,21 @@ use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::grid::Grid;
 
 use std::time::{Duration, Instant};
+use crate::coordinate_system::Coordinates::{ABSOLUTE, RELATIVE};
 use crate::point::Point;
 use crate::psf_grid::PsfGrid;
 
-pub struct detector{
+pub struct Detector {
+    pub label: String,
     pub(crate) grid: Grid,
     data: Vec<Vec<f32>>
 }
 
-impl detector{
+impl Detector {
 
-    pub fn new_uvex() -> detector{
-        let num_pixels =4096*3;
-        let pixel_to_deg_scale = 3.0/num_pixels as f64; //Degrees in FOV to pixels
-        let detector_x_axis = (pixel_to_deg_scale,0.0);
-        let detector_y_axis = (0.0,pixel_to_deg_scale);
-        let detector_center = Point::new(-0.5,0.0,Coordinates::ABSOLUTE);
-        let coordinate_system = CoordinateSystem::new(detector_x_axis,detector_y_axis,(-0.5,0.0), "Detector 1".to_string(), "magenta".to_string());
-        let grid = Grid::new_empty((num_pixels,num_pixels), (1.0,1.0), detector_center, 0.01, Coordinates::RELATIVE(coordinate_system));
+    pub fn new_uvex(label: String, center:Point,num_pixels:usize,coordinates: Coordinates) -> Detector {
+
+        let grid = Grid::new_empty((num_pixels,num_pixels), (1.0,1.0), center, 0.01, coordinates);
         let mut data = Vec::with_capacity(num_pixels*num_pixels);
         for _row in 0..num_pixels{
             let mut row_vec = Vec::with_capacity(num_pixels);
@@ -32,7 +29,7 @@ impl detector{
             }
             data.push(row_vec);
         }
-        detector{grid, data}
+        Detector {label, grid, data}
     }
     pub fn show_read_out(&mut self, points:Vec<(Point,f32)>,psf_grid:PsfGrid){
 
@@ -122,5 +119,64 @@ impl detector{
     }
 
 }
+
+
+pub struct DetectorArray{
+    label: String,
+    pub(crate) detectors: Vec<Detector>,
+    coordinate_system: CoordinateSystem
+}
+
+impl DetectorArray{
+    pub fn uvex_detector_array(x_gap:f64, y_gap:f64) -> DetectorArray{
+        let num_pixels =4096;
+        let detector_width_degrees = 1.0;
+        let center_absolute = Point::new(-0.5,0.0,Coordinates::ABSOLUTE);
+        let num_detectors_y = 3;
+        let num_detectors_x = 3;
+
+        let pixel_to_deg_scale = detector_width_degrees/num_pixels as f64; //Degrees in FOV to pixels
+        let detectors_x_axis = (pixel_to_deg_scale,0.0);
+        let detectors_y_axis = (0.0,pixel_to_deg_scale);
+
+        let coordinate_system = CoordinateSystem::new(
+            detectors_x_axis,
+            detectors_y_axis,
+            center_absolute.values(),
+            "Detector Coordinate System".to_string(),
+            "magenta".to_string());
+
+        let detector_grid = Grid::new_empty(
+            (num_detectors_x,num_detectors_x),
+            (1.0 + x_gap,1.0 + y_gap),
+            center_absolute,
+            0.01,
+            ABSOLUTE);
+
+        let mut detectors = Vec::new();
+        for point in 0..detector_grid.num_points{
+            let point_location = detector_grid.absolute_location(point);
+            println!("Point location of point {point} is {:?}",point_location);
+            let center = Point::new(point_location.x, point_location.y, Coordinates::ABSOLUTE);
+            detectors.push(Detector::new_uvex(
+                point.to_string(),
+                center,
+                num_pixels,
+                RELATIVE(coordinate_system.clone())))
+
+        }
+
+        DetectorArray{
+            label: "UVEX Detector Array".to_string(),
+            detectors,
+            coordinate_system,
+        }
+
+
+    }
+}
+
+
+
 
 

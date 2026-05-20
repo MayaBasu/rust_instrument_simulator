@@ -97,7 +97,7 @@ pub struct EffectType {
     //The first two fields tell us how to read the data from the file, and the last tells us how to apply it
     pub spatial_extent: usize,
     //Spatial dimension of the data.
-    //If this is a QE for each pixel for one 4kx4k detector, then the spatial extent is 4000
+    //If this is a QE for each pixel for one 4kx4k Detector, then the spatial extent is 4000
     //If this is a spatially independent transmission curve
     // which is sampled over 1000 frequency samples then the spatial extent is 1
     pub spectral_extent: usize,
