@@ -2,7 +2,7 @@ use plotpy::{Curve, Legend, Plot};
 use serde::{Deserialize, Serialize};
 use crate::point::Point;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,Serialize)]
 pub enum Coordinates {
     ABSOLUTE,
     RELATIVE(CoordinateSystem),

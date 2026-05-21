@@ -21,7 +21,9 @@ use crate::fits2::{fits_path, open_fits};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use crate::grid::{ Grid};
 
-pub const spectral_resolution:usize  = 2;
+pub const smallest_wavelength:usize = 120;
+pub const largest_wavelength:usize = 999;
+pub const spectral_resolution:usize  = largest_wavelength-smallest_wavelength;
 pub const spatial_resolution:usize  = 4;
 //TODO I want this to serialize as m1 -> m2 ....
 #[derive(Serialize, Deserialize)]
@@ -77,7 +79,7 @@ impl Instrument{
         let mut file = File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
-
+    /*
     pub fn run(&self, source_list: &mut SourceList) {
 
         /*
@@ -214,6 +216,8 @@ impl Instrument{
 
         }
     }
+
+     */
     pub fn rummage(&self, object_name:String) -> &TelescopeObject{
 
         /* rummage around in the telescope_objects list and look for an object called

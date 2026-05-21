@@ -2,42 +2,70 @@ use std::fs::File;
 use std::io::Write;
 use rand::distr::{Distribution, Uniform};
 use serde::Serialize;
+use crate::grid::Grid;
 use crate::instrument::{spatial_resolution, spectral_resolution};
+use crate::point::Point;
 
+#[derive( Clone, Debug)]
+pub enum Spectrum{
+    Full(f64,[f64;spectral_resolution]),
+    Bands(Vec<Bands>),
 
-#[derive(Debug,Serialize,Clone)]
+}
+#[derive(Clone,Debug)]
+pub enum Bands{
+    FUV(f64),
+    NUV(f64),
+}
+
+#[derive(Debug,Clone)]
 pub struct PointSource {
-    pub source_x:f64, //floats between 0 and 1
-    pub source_y:f64,
-    pub spectrum: [f64;spectral_resolution],
-    pub luminosity: f64,
+    pub point: Point,
+    pub spectrum: Spectrum,
 }
 
 impl PointSource {
-    pub fn new(source_x:f64, source_y:f64, spectrum: [f64;spectral_resolution],luminosity:f64) -> PointSource {
+    pub fn new_full(point:Point, spectrum: [f64;spectral_resolution],luminosity:f64) -> PointSource {
+        let spectrum = Spectrum::Full(luminosity,spectrum);
         PointSource {
-            source_x,
-            source_y,
+            point,
+            spectrum
+        }
+    }
+    pub fn new_fuv_nuv(point:Point,fuv:f64,nuv:f64 ) -> PointSource{
+        let spectrum = Spectrum::Bands(vec![Bands::NUV(nuv),Bands::FUV(fuv)]);
+        PointSource{
+            point,
+            spectrum
+        }
+    }
+    pub fn new(point:Point, spectrum: Spectrum) -> PointSource{
+
+        PointSource{
+            point,
             spectrum,
-            luminosity,
         }
     }
-    
-    pub(crate) fn get_bin(&self, num_spacial_bins:usize) -> usize{
-        if num_spacial_bins ==1{
-            return 1
+
+    pub fn fake_spectrum()-> [f64;spectral_resolution]{
+        let mut spectrum = [0.0;spectral_resolution];
+        let luminosities = Uniform::new(0.0,1.0).expect("Could not generate random luminosities in the given range");
+        let mut rng = rand::rng();
+        for element in 0..spectrum.len(){
+            spectrum[element] = 1.0  + luminosities.sample(&mut rng);
         }
-        let column = (self.source_x*num_spacial_bins as f64).floor();
-       // println!("column is {column}");
-        let row = (self.source_y*num_spacial_bins as f64).floor();
-       // println!("row is {row}");
-        let spatial_grid_number = num_spacial_bins as f64*(row) + column;
-       // println!("{}", grid_number);
-        spatial_grid_number as usize
+        /*
+        Spectrum::Full(1.0,spectrum)
+
+         */
+        spectrum
     }
+
+
+
 }
 
-#[derive(Debug,Serialize)]
+#[derive(Debug)]
 pub struct SourceList {
     pub sources: Vec<PointSource>,
 }
@@ -61,11 +89,7 @@ impl SourceList {
     pub fn new_random_point_source_field(number_of_point_sources:usize,
                                          min_brightness: f64,
                                          max_brightness: f64,
-                                         min_x: f64,
-                                         max_x:f64,
-                                         min_y: f64,
-                                         max_y:f64,
-                                         spectrum:[f64;spectral_resolution],
+                                         grid: &Grid,
                                         ) -> SourceList {
         //Some checks to make sure that the incoming values are as expected
         //TODO Fix these checks to work with f64 values
@@ -80,23 +104,24 @@ impl SourceList {
          */
 
         let luminosities = Uniform::new(min_brightness,max_brightness).expect("Could not generate random luminosities in the given range");
-        let x_positions = Uniform::new(min_x,max_x).expect("Could not generate random x positions in the given range");
-        let y_positions = Uniform::new(min_y,max_y).expect("Could not generate random y positions in the given range");
         let mut rng = rand::rng();
         let sources: Vec<PointSource> = (0..number_of_point_sources).map(|_x|{
-            let x = x_positions.sample(&mut rng);
-            let y = y_positions.sample(&mut rng);
             let luminosity = luminosities.sample(&mut rng);
-            PointSource::new(x, y, spectrum, luminosity)
+            let point = grid.random();
+            let spectrum = PointSource::fake_spectrum();
+            PointSource::new_full(point,spectrum,luminosity)
         }).collect();
         SourceList::new_from(sources)
     }
+    /*
     pub fn write_to_yaml(&self, file_name:&str,) {
         println!("Serializing point sources");
         let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the sources");
         let mut file = File::create(file_name).expect("Couldn't create the config file");
         write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
     }
+
+     */
 
 }
 

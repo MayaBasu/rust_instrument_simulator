@@ -1,6 +1,7 @@
+use serde::Serialize;
 use crate::coordinate_system::{Coordinates};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,Serialize)]
 pub struct Point{
     pub(crate) x: f64,
     pub(crate) y: f64,

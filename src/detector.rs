@@ -3,18 +3,22 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
-use crate::grid::Grid;
+use crate::grid::{Grid, Location};
 
 use std::time::{Duration, Instant};
 use crate::coordinate_system::Coordinates::{ABSOLUTE, RELATIVE};
 use crate::point::Point;
 use crate::psf_grid::PsfGrid;
+use crate::sources::{Bands, SourceList, Spectrum};
 
+#[derive(Clone)]
 pub struct Detector {
     pub label: String,
     pub(crate) grid: Grid,
     data: Vec<Vec<f32>>
 }
+
+
 
 impl Detector {
 
@@ -31,7 +35,7 @@ impl Detector {
         }
         Detector {label, grid, data}
     }
-    pub fn show_read_out(&mut self, points:Vec<(Point,f32)>,psf_grid:PsfGrid){
+    pub fn show_read_out(&mut self, source_list: SourceList,psf_grid:PsfGrid){
 
         let start = Instant::now();
         let mut data = &mut self.data;
@@ -55,57 +59,55 @@ impl Detector {
          */
        // println!("{}, {}",data.len(),data[0].len());
 
+        let mut dropped = 0;
+        for point in source_list.sources{
+            let luminosity = match point.spectrum{
+                Spectrum::Full(_, _) => {panic!("Implement me!! uwu")}
+                Spectrum::Bands(bands) => {match bands[0]{
+                    Bands::FUV(fuv_luminosity) => {println!("Displaying the FUV channel"); fuv_luminosity}
+                    Bands::NUV(nuv_luminosity) => {println!("Displaying the FUV channel"); nuv_luminosity}
+                }} //TODO have both FUV and NUV
+            } as f32;
 
-        for point in points{
-           // println!("POINT!!!");
-           // println!("adding point {:?}",point);
-         //   println!("as absolute: {:?}", point.to_absolute());
 
-            //println!("{:?} adding at {:?}",(point.x,point.y),(new_x,new_y));
-            let psf = psf_grid.interpolated_psf(&point.0);
-            let ((x_mod,y_mod),binned_psf) = self.grid.bin_up_patch(point.0,&psf,10);
-            let binned_matrix_x = binned_psf[0].len();
-            let binned_matrix_y = binned_psf.len();
+            match self.grid.inside_or_outside(point.point.convert(&self.grid.coordinates).values()){
+                Location::Outside => {dropped +=1}
+                Location::Inside => {let psf = psf_grid.interpolated_psf(&point.point);
 
-            println!("{:?}",binned_psf);
-            /*
+                    let ((x_mod,y_mod),binned_psf) = self.grid.bin_up_patch(point.point,&psf,10);
+                    let binned_matrix_x = binned_psf[0].len();
+                    let binned_matrix_y = binned_psf.len();
 
-            for row in 0..matrix_y{
-                for column in 0..matrix_x{
+                    for row in 0..binned_matrix_y{
+                        for column in 0..binned_matrix_x{
 
-                    //println!("{}{}",column + y, row + y);
-                    data[column + new_x][row + new_y] += psf[column][row]
-                }
+
+                            //println!("{}{}",column + y, row + y);
+                            if column + y_mod < self.grid.x_num && row + x_mod < self.grid.y_num{
+                                data[column + y_mod][row + x_mod] += binned_psf[column][row]*luminosity;
+                            }else{
+                                println!("dropping pixel");
+                            }
+
+                            // println!("modifying pixel {:?} to be {:?}",(row + x_mod,column + y_mod),binned_psf[column][row]);
+                        }
+                    }}
             }
 
-             */
 
-            for row in 0..binned_matrix_y{
-                for column in 0..binned_matrix_x{
-
-
-                    //println!("{}{}",column + y, row + y);
-                    if column + y_mod < 4096*3 && row + x_mod < 4096*3{
-                        data[column + y_mod][row + x_mod] += binned_psf[column][row]*point.1;
-                    }else{
-                        println!("dropping pixel");
-                    }
-
-                   // println!("modifying pixel {:?} to be {:?}",(row + x_mod,column + y_mod),binned_psf[column][row]);
-                }
-            }
 
 
 
 
         }
 
+
        // data[0][0]  += 100.0;
 
 
         let sum:f32  = data.iter().flatten().sum();
         let duration = start.elapsed();
-        println!("Time elapsed in expensive_function() is: {:?}", duration);
+        println!("Time elapsed in expensive_function() is: {:?}, dropped {:?}", duration,dropped);
 
         println!("made array :{}",sum);
 

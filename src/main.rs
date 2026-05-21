@@ -1,6 +1,8 @@
+use std::time::Instant;
 use plotpy::Plot;
 use rand::RngExt;
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
+use crate::dichroic::apply_dichroic;
 use crate::grid::{Grid, PlotPoint};
 use crate::point::Point;
 use crate::psf_grid::PsfGrid;
@@ -24,8 +26,13 @@ mod coordinate_system;
 mod psf_grid;
 mod point;
 mod detector;
+mod datafile_reader;
+mod dichroic;
 
 fn main() {
+
+    //apply_dichroic(SourceList::new_empty(2));
+
 
 
 
@@ -39,14 +46,14 @@ fn main() {
         detector.grid.plot_outline(&mut plot, "blue");
     }
 
-    plot.show("ksenf").expect("hHHHHHH");
+   // plot.show("ksenf").expect("hHHHHHH");
 
 
     let mut psf_grid = PsfGrid::new(grid);
     psf_grid.load_data_frames(fuv_path, ("XFLD", "YFLD"), (64, 64), (6.4, 6.4));
     psf_grid.validate();
 
-    let mut points = Vec::new();
+
     /*
     for i in 0..psf_grid.grid.num_points{
         let (x,y) = psf_grid.grid.xy_indices(i);
@@ -57,25 +64,18 @@ fn main() {
 
      */
    // println!("AMMMMMMMMM ");
-    let detector = &uvex_detector_array.detectors[0];
+    let mut detector = uvex_detector_array.detectors[0].clone();
 
-    for i in 1..100000{ //100000
+    let start = Instant::now();
+    let source_list = SourceList::new_random_point_source_field(1000000,0.0,1000.0,&psf_grid.grid);
+    let duration = start.elapsed();
+    println!("{:?}",source_list.sources[0].spectrum);
+    println!("Generated {:?} fake point sources in {:?}", source_list.sources.len(), duration.as_millis());
 
-       // println!("AMMMMMMMMM {:?}",psf_grid.grid.random());
 
-        let point = detector.grid.random();
-        let mut rng = rand::rng();
-        let luminosity:f32 = rng.random();
-        points.push((point,luminosity*10000.0));
-        println!("Luminosity is {:?}",luminosity);
+    let new_source_list = dichroic::apply_dichroic(source_list);
 
-    }
-
-    let example_psf = psf_grid.grid_psf(1);
-    println!("points {:?}",points.len());
-
-   // let detector = &mut detector::Detector::new_uvex();
-   // detector.show_read_out(points,psf_grid);
+    detector.show_read_out(new_source_list,psf_grid);
 
 
 
@@ -98,26 +98,6 @@ fn main() {
 
 
 
-    let coord = CoordinateSystem{
-        x_axis: (1.0,0.0),
-        y_axis: (0.0,1.0),
-        center: (0.0, 0.0),
-        color: "red".to_string(),
-        label: "regular".to_string(),
-    };
-
-    let coord2 = CoordinateSystem{
-        x_axis: (1.0,0.3),
-        y_axis: (2.0,1.0),
-        center: (0.0, 0.0),
-        color: "green".to_string(),
-        label: "off".to_string(),
-    };
-   // CoordinateSystem::plot_coordinate_systems(vec![&coord,&coord2])
-
-
-
-
    // let details = uvex_details::UVEX_Details::default("details.yaml");
 
     //let demo = initialize_demo(details,"configuration/demo.yaml");
@@ -126,6 +106,8 @@ fn main() {
     //println!("{:?}",grid.corner());
     //println!("{:?}",grid.size());
     //grid.pretty_print()
+
+
 }
 /*
 
@@ -138,6 +120,8 @@ fn main() {
  */
 
    // println!("{:?}", source_list)
+
+
 
 
 

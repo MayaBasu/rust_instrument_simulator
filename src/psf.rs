@@ -104,6 +104,7 @@ impl PSF {
     }
 
      */
+    /*
 
     pub fn convolve(&self,point_source: PointSource) -> SourceList{
         let bottom_left_corner = (self.center.0 - self.size.0/2.0,self.center.1 - self.size.1/2.0);
@@ -122,6 +123,8 @@ impl PSF {
         }
         output_sources
     }
+    
+     */
 }
 
 
