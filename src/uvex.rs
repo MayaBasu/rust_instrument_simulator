@@ -3,10 +3,10 @@ use crate::objects::TelescopeObject;
 use crate::instrument::Instrument;
 use crate::uvex_details::{FUV_DETAILS, NUV_DETAILS, SPECTROGRAPH_DETAILS, TMA_Details, UVEX_Details};
 use crate::effects::*;
-use crate::grid::{Grid};
+use crate::grid2d::{GRID2D};
 use crate::point::Point;
 
-pub fn empty_fuv() ->Grid{
+pub fn empty_fuv() -> GRID2D {
 
     let coord = CoordinateSystem{
         x_axis: (1.0,0.0),
@@ -15,7 +15,7 @@ pub fn empty_fuv() ->Grid{
         color: "red".to_string(),
         label: "fuv".to_string(),
     };
-    let mut grid = Grid::new_empty(
+    let mut grid = GRID2D::new_empty(
         (18,18), //x_num
         (0.2,0.2), //x_step_size
         Point::new(-0.56, -0.06,Coordinates::RELATIVE(coord.clone())), //y_num

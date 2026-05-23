@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
-use crate::grid::{Grid, Location};
+use crate::grid2d::{GRID2D, Location};
 
 use std::time::{Duration, Instant};
 use crate::coordinate_system::Coordinates::{ABSOLUTE, RELATIVE};
@@ -14,7 +14,7 @@ use crate::sources::{Bands, SourceList, Spectrum};
 #[derive(Clone)]
 pub struct Detector {
     pub label: String,
-    pub(crate) grid: Grid,
+    pub(crate) grid: GRID2D,
     data: Vec<Vec<f32>>
 }
 
@@ -24,7 +24,7 @@ impl Detector {
 
     pub fn new_uvex(label: String, center:Point,num_pixels:usize,coordinates: Coordinates) -> Detector {
 
-        let grid = Grid::new_empty((num_pixels,num_pixels), (1.0,1.0), center, 0.01, coordinates);
+        let grid = GRID2D::new_empty((num_pixels, num_pixels), (1.0, 1.0), center, 0.01, coordinates);
         let mut data = Vec::with_capacity(num_pixels*num_pixels);
         for _row in 0..num_pixels{
             let mut row_vec = Vec::with_capacity(num_pixels);
@@ -64,8 +64,10 @@ impl Detector {
             let luminosity = match point.spectrum{
                 Spectrum::Full(_, _) => {panic!("Implement me!! uwu")}
                 Spectrum::Bands(bands) => {match bands[0]{
-                    Bands::FUV(fuv_luminosity) => {println!("Displaying the FUV channel"); fuv_luminosity}
-                    Bands::NUV(nuv_luminosity) => {println!("Displaying the FUV channel"); nuv_luminosity}
+                    Bands::FUV(fuv_luminosity) => {//println!("Displaying the FUV channel");
+                        fuv_luminosity}
+                    Bands::NUV(nuv_luminosity) => {//println!("Displaying the FUV channel");
+                        nuv_luminosity}
                 }} //TODO have both FUV and NUV
             } as f32;
 
@@ -86,7 +88,7 @@ impl Detector {
                             if column + y_mod < self.grid.x_num && row + x_mod < self.grid.y_num{
                                 data[column + y_mod][row + x_mod] += binned_psf[column][row]*luminosity;
                             }else{
-                                println!("dropping pixel");
+                               // println!("dropping pixel");
                             }
 
                             // println!("modifying pixel {:?} to be {:?}",(row + x_mod,column + y_mod),binned_psf[column][row]);
@@ -104,20 +106,26 @@ impl Detector {
 
        // data[0][0]  += 100.0;
 
-
+        let size = data.len();
+        let size2 = data[0].len();
         let sum:f32  = data.iter().flatten().sum();
         let duration = start.elapsed();
         println!("Time elapsed in expensive_function() is: {:?}, dropped {:?}", duration,dropped);
 
-        println!("made array :{}",sum);
+        println!("made array, sum is  :{}, size is {:?}, {:?}",sum, size,size2);
+
+        if false{
+            let mut img = Image::new();
+            img.set_colormap_name("terrain").set_extra("alpha=0.8").draw(data);
+            let mut plot = Plot::new();
+            plot.add(&img);
+
+            plot.show( "eeeeh").expect("couldn't save plot!")
+
+        }
 
 
-        let mut img = Image::new();
-        img.set_colormap_name("terrain").set_extra("alpha=0.8").draw(data);
-        let mut plot = Plot::new();
-        plot.add(&img);
 
-        plot.show( "eeeeh").expect("couldn't save plot!")
     }
 
 }
@@ -131,11 +139,11 @@ pub struct DetectorArray{
 
 impl DetectorArray{
     pub fn uvex_detector_array(x_gap:f64, y_gap:f64) -> DetectorArray{
-        let num_pixels =4096;
-        let detector_width_degrees = 1.0;
+        let num_pixels =9*4096;
+        let detector_width_degrees = 3.0;
         let center_absolute = Point::new(-0.5,0.0,Coordinates::ABSOLUTE);
-        let num_detectors_y = 3;
-        let num_detectors_x = 3;
+        let num_detectors_y = 1;
+        let num_detectors_x = 1;
 
         let pixel_to_deg_scale = detector_width_degrees/num_pixels as f64; //Degrees in FOV to pixels
         let detectors_x_axis = (pixel_to_deg_scale,0.0);
@@ -148,7 +156,7 @@ impl DetectorArray{
             "Detector Coordinate System".to_string(),
             "magenta".to_string());
 
-        let detector_grid = Grid::new_empty(
+        let detector_grid = GRID2D::new_empty(
             (num_detectors_x,num_detectors_x),
             (1.0 + x_gap,1.0 + y_gap),
             center_absolute,
@@ -158,7 +166,7 @@ impl DetectorArray{
         let mut detectors = Vec::new();
         for point in 0..detector_grid.num_points{
             let point_location = detector_grid.absolute_location(point);
-            println!("Point location of point {point} is {:?}",point_location);
+           // println!("Point location of point {point} is {:?}",point_location);
             let center = Point::new(point_location.x, point_location.y, Coordinates::ABSOLUTE);
             detectors.push(Detector::new_uvex(
                 point.to_string(),

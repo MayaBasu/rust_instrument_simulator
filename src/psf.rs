@@ -4,7 +4,7 @@ use std::slice::Iter;
 use serde::{Deserialize, Serialize};
 use uvex_fitrs::{Fits, FitsData, FitsDataArray, Hdu, HeaderValue};
 use crate::coordinate_system::CoordinateSystem;
-use crate::grid::Grid;
+use crate::grid2d::GRID2D;
 use crate::sources::{PointSource, SourceList};
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
@@ -58,7 +58,7 @@ impl PSF {
             size: (size_x,size_y),
         }
     }
-    pub fn snap_to_grid(&self, grid: &Grid) -> usize{
+    pub fn snap_to_grid(&self, grid: &GRID2D) -> usize{
         let index = grid.snap(self.center);
         index
     }

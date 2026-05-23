@@ -19,7 +19,7 @@ use crate::fits2;
 use crate::fits2::{fits_path, open_fits};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use crate::grid::{ Grid};
+use crate::grid2d::{GRID2D};
 
 pub const smallest_wavelength:usize = 120;
 pub const largest_wavelength:usize = 999;

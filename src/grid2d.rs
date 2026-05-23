@@ -20,7 +20,7 @@ pub enum Bin{
 
 
 #[derive(Debug,Clone)]
-pub struct Grid {
+pub struct GRID2D {
     pub coordinates: Coordinates,
 
     pub x_num: usize,
@@ -43,23 +43,23 @@ pub struct Grid {
 
 }
 
-impl Grid{
+impl GRID2D {
     pub fn new_empty((x_num,y_num): (usize,usize),
                      (x_step_size,y_step_size): (f64,f64), //TODO have units for this length
                     center: Point,
                     snap_precision: f64,
                      coordinates: Coordinates,
-    ) -> Grid{
+    ) -> GRID2D {
         let x_size = x_step_size*(x_num-1)as f64;
         let y_size = y_step_size*(y_num-1)as f64;
         let num_points = x_num*y_num;
         let (x_0,y_0) = center.convert(&coordinates).values();
         let corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
-        println!("Huh?");
-        println!("CORNER IS {:?} for {x_num}",Point::new(corner.0,corner.1,coordinates.clone()).to_absolute());
-        println!("Center is {:?}",(x_0,y_0));
+       // println!("Huh?");
+      //  println!("CORNER IS {:?} for {x_num}",Point::new(corner.0,corner.1,coordinates.clone()).to_absolute());
+      //  println!("Center is {:?}",(x_0,y_0));
         assert!(snap_precision<0.5);
-        Grid{
+        GRID2D {
             coordinates,
             x_num,
             x_step_size,
@@ -97,7 +97,7 @@ impl Grid{
         let (x_corner,y_corner) = self.corner;
         let (x_index,y_index) = self.xy_indices(grid_number);
         let (x,y) = (x_corner + x_index as f64 *self.x_step_size, y_corner + y_index as f64 *self.y_step_size);
-        println!("relatice location is {:?}",(x,y));
+        //println!("relatice location is {:?}",(x,y));
         Point::new(x,y,self.coordinates.clone())
     }
 
@@ -187,7 +187,7 @@ impl Grid{
 
         let delta_x = x - corner_x;
         let delta_y = y - corner_y;
-        println!("DELTAS ARE {:?}",(delta_x,delta_y));
+        //println!("DELTAS ARE {:?}",(delta_x,delta_y));
         //  println!("delta x and delta y are {:?}, {:?}",delta_x,delta_y);
         let x_scaled_residual = delta_x/self.x_step_size - (delta_x/self.x_step_size).floor();
         let y_scaled_residual = delta_y/self.y_step_size - (delta_y/self.y_step_size).floor();
@@ -255,7 +255,7 @@ impl Grid{
         }else{
             (y_pixels as f64/scale)  as usize
         };
-        println!("Binned x size, y size is {:?}",((x_pixels as f64/scale).ceil() as usize + 1,(y_pixels as f64/scale).ceil() as usize + 1));
+      //  println!("Binned x size, y size is {:?}",((x_pixels as f64/scale).ceil() as usize + 1,(y_pixels as f64/scale).ceil() as usize + 1));
 
         let mut binned_psf = vec![vec![0.0;(x_pixels as f64/scale).ceil() as usize + 1];(y_pixels as f64/scale).ceil() as usize + 1];
         for y in 0..y_pixels{
@@ -265,7 +265,7 @@ impl Grid{
                 binned_psf[binned_y_index][binned_x_index] += psf[y][x];
             }
         }
-        println!(" {:?} MODULUSES ER {:?}",center_of_the_corner_pixel,(x_mod,y_mod));
+      //  println!(" {:?} MODULUSES ER {:?}",center_of_the_corner_pixel,(x_mod,y_mod));
         ((x_mod,y_mod),binned_psf)
 
     }
@@ -282,7 +282,7 @@ impl Grid{
         let (grid_y_min, grid_y_max) = (corner_y, corner_y + self.y_size);
 
         if (x < grid_x_min - epsilon) | (x > grid_x_max + epsilon) | (y < grid_y_min - epsilon) | (y > grid_y_max + epsilon){
-            println!("Point was outside of the grid, min x is {grid_x_min}, max x is {grid_x_max}, min y is {grid_y_min}, max y is {grid_y_max}");
+            //println!("Point was outside of the grid, min x is {grid_x_min}, max x is {grid_x_max}, min y is {grid_y_min}, max y is {grid_y_max}");
             return Location::Outside
         };
         Location::Inside
@@ -454,7 +454,7 @@ impl Grid{
         let (c4x,c4y) = (c1x , c1y + self.y_size + self.y_step_size);
 
         let point = Point::new(c1x,c1y,self.coordinates.clone());
-        println!("CORNER IS AT {:?}",(self.corner,point.to_absolute()));
+       // println!("CORNER IS AT {:?}",(self.corner,point.to_absolute()));
         (Point::new(c1x,c1y,self.coordinates.clone()),
          Point::new(c2x,c2y,self.coordinates.clone()),
          Point::new(c3x,c3y,self.coordinates.clone()),

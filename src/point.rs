@@ -13,7 +13,8 @@ impl Point{
     }
     pub fn to_absolute(&self) -> Point{
         match &self.coordinates{
-            Coordinates::ABSOLUTE => {println!("already in absolute");
+            Coordinates::ABSOLUTE => {
+                //println!("already in absolute");
                 self.clone()}
             Coordinates::RELATIVE(coordinate_system) => {
                 let absolute_x =  self.x * coordinate_system.x_axis.0 + self.y *coordinate_system.y_axis.0;

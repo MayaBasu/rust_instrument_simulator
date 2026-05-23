@@ -1,9 +1,10 @@
 use std::time::Instant;
 use plotpy::Plot;
-use rand::RngExt;
+use rand::{random, RngExt};
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::dichroic::apply_dichroic;
-use crate::grid::{Grid, PlotPoint};
+use crate::grid1d::GRID1D;
+use crate::grid2d::{GRID2D, PlotPoint};
 use crate::point::Point;
 use crate::psf_grid::PsfGrid;
 use crate::sources::{PointSource, SourceList};
@@ -21,17 +22,24 @@ mod uvex_details;
 
 
 mod psf;
-mod grid;
+mod grid2d;
 mod coordinate_system;
 mod psf_grid;
 mod point;
 mod detector;
 mod datafile_reader;
 mod dichroic;
+mod grid1d;
 
 fn main() {
 
     //apply_dichroic(SourceList::new_empty(2));
+    let mut plot = Plot::new();
+    let grid1d = GRID1D::new_empty(10,1.0,0.0,0.1,1.0);
+    grid1d.plot_points(&mut plot,PlotPoint::Random);
+    plot.show("slefje").unwrap();
+
+    /*
 
 
 
@@ -106,6 +114,8 @@ fn main() {
     //println!("{:?}",grid.corner());
     //println!("{:?}",grid.size());
     //grid.pretty_print()
+
+     */
 
 
 }

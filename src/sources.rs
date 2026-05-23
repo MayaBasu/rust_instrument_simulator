@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use rand::distr::{Distribution, Uniform};
 use serde::Serialize;
-use crate::grid::Grid;
+use crate::grid2d::GRID2D;
 use crate::instrument::{spatial_resolution, spectral_resolution};
 use crate::point::Point;
 
@@ -89,7 +89,7 @@ impl SourceList {
     pub fn new_random_point_source_field(number_of_point_sources:usize,
                                          min_brightness: f64,
                                          max_brightness: f64,
-                                         grid: &Grid,
+                                         grid: &GRID2D,
                                         ) -> SourceList {
         //Some checks to make sure that the incoming values are as expected
         //TODO Fix these checks to work with f64 values

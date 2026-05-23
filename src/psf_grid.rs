@@ -1,18 +1,18 @@
 use std::fs;
 use crate::coordinate_system::CoordinateSystem;
-use crate::grid::{Corners, Grid};
+use crate::grid2d::{Corners, GRID2D};
 use crate::point::Point;
 use crate::psf::{DataFile, PSF, Load};
 
 
 pub struct PsfGrid {
     data: Vec<(usize,PSF)>,
-    pub(crate) grid: Grid,
+    pub(crate) grid: GRID2D,
     valid: bool
 }
 
 impl PsfGrid{
-    pub fn new(grid:Grid)-> PsfGrid{
+    pub fn new(grid: GRID2D) -> PsfGrid{
         PsfGrid{
             data: vec![],
             grid: grid,
@@ -78,9 +78,9 @@ impl PsfGrid{
 
 
     pub fn interpolated_psf(&self, point:&Point) -> Vec<Vec<f32>>{
-        println!("Converting from {:?}", point);
+        //println!("Converting from {:?}", point);
         let Point{x,y, .. } = point.convert(&self.grid.coordinates);
-        println!("To {:?}",(x,y));
+      //  println!("To {:?}",(x,y));
 
         let ((Q12, Q22, Q21, Q11),(c11,c12,c21,c22),normalization) = self.interpolation_coefficients((x,y));
 

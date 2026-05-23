@@ -20,7 +20,7 @@ pub fn apply_dichroic(source_list: SourceList) -> SourceList{
     let NUV_respnse =datafile_reader::read_data_file(NUV_respnse,931,2,1.0,false);
     let NUV_contamination =datafile_reader::read_data_file(NUV_contamination,890,2,1.0,false);
     let QE_curve =datafile_reader::read_data_file(QE_curve,1001,2,1000.0,false);
-    let Dichroic = datafile_reader::read_data_file(Dichroic,1960,3,1000.0,false);
+    let Dichroic = datafile_reader::read_data_file(Dichroic,1960,3,1000.0,true);
 
     let fake_contamination_curve1 = PointSource::fake_spectrum();
     let fake_contamination_curve2 = PointSource::fake_spectrum();
