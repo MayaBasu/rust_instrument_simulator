@@ -7,6 +7,12 @@ pub struct Point{
     pub(crate) y: f64,
     pub(crate) coordinates: Coordinates
 }
+#[derive(Clone, Debug,Serialize)]
+pub struct Length{
+    pub l: f64,
+    coordinates: Coordinates,
+    
+}
 impl Point{
     pub fn new(x:f64,y:f64,coordinates: Coordinates) -> Point{
         Point{x,y,coordinates}

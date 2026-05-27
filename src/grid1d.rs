@@ -20,54 +20,57 @@ pub enum Neighbors {
 #[derive(Debug,Clone)]
 pub struct GRID1D {
     pub scale: f64,
-    pub num: usize,
     pub step_size: f64,
-    pub size: f64,
-    pub center: f64,
     pub minimum_value: f64,
+    pub maximum_value: f64,
     pub snap_precision: f64,
-    pub label: String,
+    pub label: &'static str,
 
 }
 
 impl GRID1D {
-    pub fn new_empty(num: usize,
+    pub const fn new_empty(
                      step_size: f64, //TODO have units for this length
                     minimum_value: f64,
+                     maximum_value: f64,
                     snap_precision: f64,
                      scale:f64,
 
     ) -> GRID1D {
-        let size = step_size*(num-1)as f64;
-        let center = minimum_value + size/2.0;
         assert!(snap_precision<0.5);
         GRID1D {
             scale,
-            num,
             step_size,
-            size,
-            center,
             minimum_value,
+            maximum_value,
             snap_precision,
-            label: "".to_string(),
+            label:"",
         }
+    }
+    pub fn num(&self)-> usize{
+        //TODO MUST VERIFY THI IS AN INTEGER
+        ( (self.maximum_value-self.minimum_value)/self.step_size ) as usize + 1
     }
 
 
     pub fn location(&self, grid_number:usize) -> f64 {
-        assert!((grid_number <= self.num-1)&&(grid_number >= 0));
+        assert!((grid_number <= self.num()-1)&&(grid_number >= 0));
         self.minimum_value + self.step_size*grid_number as f64
+    }
+
+    pub fn size(&self)-> f64{
+        self.step_size*(self.num()-1)as f64
     }
 
     pub fn random(&self)-> f64{
         let mut rng = rand::rng();
         let scale: f64 = rng.random();
-        self.minimum_value + self.size*scale
+        self.minimum_value + self.size()*scale
 
     }
     pub fn inside_or_outside(&self, point:f64) -> Location1D{
         let epsilon = self.snap_precision;
-        let max = self.minimum_value + self.size;
+        let max = self.minimum_value + self.size();
         if (point < self.minimum_value - epsilon) {
             return Location1D::TooLow
         };
@@ -164,7 +167,7 @@ impl GRID1D {
 
 
         grid_points.points_begin();
-        for point in 0..self.num{
+        for point in 0..self.num(){
             let point_location = self.location(point);
             grid_points.points_add(point_location, 0.0);
             let label = format!("{}",point);
@@ -182,7 +185,7 @@ impl GRID1D {
 
         match add_point {
             PlotPoint::No => {}
-            PlotPoint::Given(x, y) => { example_point.push((x))}
+            PlotPoint::Given(point) => { example_point.push(point.x)}
             PlotPoint::Random => {
                 let random = self.random();
                 example_point.push((random)); }

@@ -1,6 +1,6 @@
 use crate::objects::TelescopeObject;
 use crate::effects::{Effect, EffectAction};
-use crate::sources::{PointSource, SourceList};
+use crate::point_sources::{PointSource, SourceList};
 
 use std::io::Write;
 use memmap2::Mmap;

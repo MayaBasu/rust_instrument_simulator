@@ -3,17 +3,18 @@ use std::path::PathBuf;
 use std::slice::Iter;
 use serde::{Deserialize, Serialize};
 use uvex_fitrs::{Fits, FitsData, FitsDataArray, Hdu, HeaderValue};
-use crate::coordinate_system::CoordinateSystem;
+use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::grid2d::GRID2D;
-use crate::sources::{PointSource, SourceList};
+use crate::point::Point;
+use crate::point_sources::{PointSource, SourceList};
 
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone,Serialize)]
 pub struct PSF {
     pub path: PathBuf,
     pub data: Vec<Vec<f32>>,
     pub x_pixels: usize,
     pub y_pixels: usize,
-    pub center: (f64,f64),
+    pub center: Point,
     pub size: (f64,f64),
 }
 
@@ -54,12 +55,12 @@ impl PSF {
             data,
             x_pixels: file.x_pixels,
             y_pixels: file.y_pixels,
-            center: (center_x,center_y),
+            center: Point::new(center_x,center_y,Coordinates::ABSOLUTE),
             size: (size_x,size_y),
         }
     }
     pub fn snap_to_grid(&self, grid: &GRID2D) -> usize{
-        let index = grid.snap(self.center);
+        let index = grid.snap(self.center.clone());
         index
     }
 
@@ -85,16 +86,16 @@ impl PSF {
         //how many pixels from the lower corner is the corner of the psf
         //TODO PSF must be square
         assert_eq!(self.x_pixels % 2 , self.y_pixels % 2 );
-        
+
         match (self.x_pixels % 2 == 0 ){
             true => {}
             false => {
-                //for an odd number of pixels in the psf the center of the psf and the center of the point 
+                //for an odd number of pixels in the psf the center of the psf and the center of the point
             }
         }
 
     }
-    
+
  */
     /*
 
@@ -123,7 +124,7 @@ impl PSF {
         }
         output_sources
     }
-    
+
      */
 }
 

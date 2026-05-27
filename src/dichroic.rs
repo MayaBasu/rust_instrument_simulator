@@ -1,12 +1,14 @@
 use std::time::Instant;
 use rand::rand_core::utils::next_word_via_fill;
 use crate::datafile_reader;
-use crate::sources::{Bands, PointSource, SourceList, Spectrum};
+use crate::point_sources::{Bands, PointSource, SourceList, Spectrum};
 
 
 pub fn apply_dichroic(source_list: SourceList) -> SourceList{
 
     let start = Instant::now();
+
+    /*
     let FUV_contamination  = "/Users/mayabasu/Desktop/uvex_psf_files/UVIM_FUV_contamination.dat";
     let FUV_response = "/Users/mayabasu/Desktop/uvex_psf_files/UVIM_FUV_filter_response.dat";
     let NUV_respnse = "/Users/mayabasu/Desktop/uvex_psf_files/UVIM_NUV_filter_response.dat";
@@ -21,6 +23,8 @@ pub fn apply_dichroic(source_list: SourceList) -> SourceList{
     let NUV_contamination =datafile_reader::read_data_file(NUV_contamination,890,2,1.0,false);
     let QE_curve =datafile_reader::read_data_file(QE_curve,1001,2,1000.0,false);
     let Dichroic = datafile_reader::read_data_file(Dichroic,1960,3,1000.0,true);
+
+     */
 
     let fake_contamination_curve1 = PointSource::fake_spectrum();
     let fake_contamination_curve2 = PointSource::fake_spectrum();
@@ -58,3 +62,4 @@ pub fn apply_dichroic(source_list: SourceList) -> SourceList{
 
 
 }
+

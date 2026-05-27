@@ -7,9 +7,10 @@ use crate::grid2d::{GRID2D, Location};
 
 use std::time::{Duration, Instant};
 use crate::coordinate_system::Coordinates::{ABSOLUTE, RELATIVE};
+use crate::flatfieldillumination::write;
 use crate::point::Point;
 use crate::psf_grid::PsfGrid;
-use crate::sources::{Bands, SourceList, Spectrum};
+use crate::point_sources::{Bands, SourceList, Spectrum};
 
 #[derive(Clone)]
 pub struct Detector {
@@ -72,11 +73,12 @@ impl Detector {
             } as f32;
 
 
-            match self.grid.inside_or_outside(point.point.convert(&self.grid.coordinates).values()){
+            match self.grid.inside_or_outside(&point.point){ //TODO remove many unneeded clone() calls by borrowing Points
                 Location::Outside => {dropped +=1}
                 Location::Inside => {let psf = psf_grid.interpolated_psf(&point.point);
 
                     let ((x_mod,y_mod),binned_psf) = self.grid.bin_up_patch(point.point,&psf,10);
+                    println!("{:?}",(x_mod,y_mod));
                     let binned_matrix_x = binned_psf[0].len();
                     let binned_matrix_y = binned_psf.len();
 
@@ -108,21 +110,14 @@ impl Detector {
 
         let size = data.len();
         let size2 = data[0].len();
+        write("/Users/mayabasu/Desktop/Output/slkfj.fits",data);
         let sum:f32  = data.iter().flatten().sum();
         let duration = start.elapsed();
         println!("Time elapsed in expensive_function() is: {:?}, dropped {:?}", duration,dropped);
 
         println!("made array, sum is  :{}, size is {:?}, {:?}",sum, size,size2);
 
-        if false{
-            let mut img = Image::new();
-            img.set_colormap_name("terrain").set_extra("alpha=0.8").draw(data);
-            let mut plot = Plot::new();
-            plot.add(&img);
 
-            plot.show( "eeeeh").expect("couldn't save plot!")
-
-        }
 
 
 
@@ -139,7 +134,7 @@ pub struct DetectorArray{
 
 impl DetectorArray{
     pub fn uvex_detector_array(x_gap:f64, y_gap:f64) -> DetectorArray{
-        let num_pixels =9*4096;
+        let num_pixels =3*4096;
         let detector_width_degrees = 3.0;
         let center_absolute = Point::new(-0.5,0.0,Coordinates::ABSOLUTE);
         let num_detectors_y = 1;

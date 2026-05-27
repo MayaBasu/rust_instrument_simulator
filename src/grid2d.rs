@@ -1,7 +1,7 @@
 use plotpy::{Curve, Plot, Text};
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use rand::RngExt;
-use crate::point::Point;
+use crate::point::{Length, Point};
 use crate::psf::PSF;
 
 pub enum Corners{
@@ -26,18 +26,18 @@ pub struct GRID2D {
     pub x_num: usize,
     pub y_num: usize,
 
-    pub x_step_size: f64,
-    pub y_step_size: f64,
+    pub x_step_size: Length,
+    pub y_step_size: Length,
 
-    pub x_size: f64,
-    pub y_size: f64,
+    pub x_size: Length,
+    pub y_size: Length,
 
     pub num_points: usize,
 
-    pub center: (f64,f64),
-    pub corner: (f64, f64),
+    pub center: Point,
+    pub corner: Point,
 
-    pub snap_precision: f64,
+    pub snap_precision: Length,
 
     pub label: String,
 
@@ -45,7 +45,7 @@ pub struct GRID2D {
 
 impl GRID2D {
     pub fn new_empty((x_num,y_num): (usize,usize),
-                     (x_step_size,y_step_size): (f64,f64), //TODO have units for this length
+                     (x_step_size,y_step_size): (Length,Length), //TODO have units for this length
                     center: Point,
                     snap_precision: f64,
                      coordinates: Coordinates,
@@ -53,7 +53,7 @@ impl GRID2D {
         let x_size = x_step_size*(x_num-1)as f64;
         let y_size = y_step_size*(y_num-1)as f64;
         let num_points = x_num*y_num;
-        let (x_0,y_0) = center.convert(&coordinates).values();
+        let (x_0,y_0) = center.to_absolute().values();
         let corner = (x_0 - x_size/2.0,y_0 - y_size/2.0);
        // println!("Huh?");
       //  println!("CORNER IS {:?} for {x_num}",Point::new(corner.0,corner.1,coordinates.clone()).to_absolute());
@@ -107,8 +107,8 @@ impl GRID2D {
     }
 
 
-    pub fn snap(&self,point:(f64,f64))-> usize{
-        let (x_mod,y_mod,x_residual,y_residual) = self.fit_grid(point);
+    pub fn snap(&self,point:Point)-> usize{
+        let (x_mod,y_mod,x_residual,y_residual) = self.fit_grid(&point);
         if (x_residual.abs() >= self.snap_precision)  | (y_residual.abs() >= self.snap_precision){
             panic!("Couldn't snap point")
         };
@@ -124,9 +124,9 @@ impl GRID2D {
         Point::new(x,y,self.coordinates.clone())
     }
 
-    pub fn fit_grid(&self, point:(f64,f64))->(usize,usize,f64,f64){
+    pub fn fit_grid(&self, point:&Point)->(usize,usize,f64,f64){
         //ensure that the point is within the grid
-        match self.inside_or_outside(point) {
+        match self.inside_or_outside(&point) {
             Location::Outside => {
                 println!("Tried to grid point {:?}",point);
                 panic!("Tried to grid a point that was outside of the grid")}
@@ -134,7 +134,7 @@ impl GRID2D {
         }
         //find the nearest point and then return the residuals to it
 
-        let (x,y) = point;
+        let (x,y) = point.to_absolute().values();
         let (corner_x,corner_y) = self.corner;
         let delta_x = x - corner_x;
         let delta_y = y - corner_y;
@@ -172,9 +172,9 @@ impl GRID2D {
         (x_mod,y_mod,x_residual,y_residual)
     }
 //TODO remove redundancey of these two functions
-    pub fn fit_grid_unscaled(&self, point:(f64,f64))->(usize,usize,f64,f64){
+    pub fn fit_grid_unscaled(&self, point:Point)->(usize,usize,f64,f64){
         //ensure that the point is within the grid
-        match self.inside_or_outside(point) {
+        match self.inside_or_outside(&point) {
             Location::Outside => {
                 println!("Tried to grid point {:?}",point);
                 panic!("Tried to grid a point that was outside of the grid")}
@@ -182,7 +182,8 @@ impl GRID2D {
         }
         //find the nearest point and then return the residuals to it
 
-        let (x,y) = point;
+        let (x,y) = point.to_absolute().values();
+    println!("{:?}corner {:?}",(x,y),(self.corner));
         let (corner_x,corner_y) = self.corner;
 
         let delta_x = x - corner_x;
@@ -218,13 +219,13 @@ impl GRID2D {
 
         //   println!("{:?}",(x_mod,y_mod,x_residual,y_residual));
         //residuals should be between -0.5 and 0.5 times the grid width
-
+    println!("{:?} ",(x_mod,y_mod));
         (x_mod,y_mod,x_residual,y_residual)
     }
 
     pub fn bin_up_patch(&self, center_of_the_corner_pixel:Point,psf:&Vec<Vec<f32>>,scale:usize)-> ((usize,usize),Vec<Vec<f32>>){ //TODO make this grid dependent
-        let Point{x,y,..} = center_of_the_corner_pixel.convert(&self.coordinates);
-        let center_of_the_corner_pixel = (x,y);
+
+
 
         let (x_mod,y_mod,x_residual,y_residual) = self.fit_grid_unscaled(center_of_the_corner_pixel);
         //unscaled returns the raction of the pixel
@@ -274,8 +275,8 @@ impl GRID2D {
 
 
 
-    pub fn inside_or_outside(&self, point:(f64,f64)) -> Location{
-        let (x,y) = point;
+    pub fn inside_or_outside(&self, point:&Point) -> Location{
+        let (x,y) = point.to_absolute().values();
         let epsilon = self.snap_precision;
         let (corner_x,corner_y) = self.corner;
         let (grid_x_min, grid_x_max) = (corner_x, corner_x + self.x_size);
@@ -290,10 +291,10 @@ impl GRID2D {
 
 
 
-    pub fn find_corners(&self,point:(f64,f64)) -> Corners{
+    pub fn find_corners(&self,point:Point) -> Corners{
         let epsilon = self.snap_precision;
 
-        let (x_mod,y_mod,x_residual,y_residual)  = self.fit_grid(point);
+        let (x_mod,y_mod,x_residual,y_residual)  = self.fit_grid(&point);
 
         //first we check to see if it is most appropriate to snap this point to a grid point:
         if (x_residual.abs() <= epsilon) && (y_residual.abs() <= epsilon) {
@@ -396,16 +397,16 @@ impl GRID2D {
 
         match add_point {
             PlotPoint::No => {}
-            PlotPoint::Given(x, y) => { example_point.push((x,y))}
+            PlotPoint::Given(point) => { example_point.push(point)}
             PlotPoint::Random => {
                 let random = self.random();
-                example_point.push((random.x,random.y)); }
+                example_point.push(random); }
         };
 
         for point in example_point{
-            let (_,_, x_res, y_res) = self.fit_grid(point);
+            let (_,_, x_res, y_res) = self.fit_grid(&point);
             extra_point.points_begin();
-            extra_point.points_add(point.0,point.1).set_label(format!("x, y residuals: {:.3}, {:.3}", x_res, y_res).as_str());
+            extra_point.points_add(point.values().0,point.clone().values().1).set_label(format!("x, y residuals: {:.3}, {:.3}", x_res, y_res).as_str());
             extra_point.points_end();
 
             let corners  = self.find_corners(point);
@@ -465,7 +466,7 @@ impl GRID2D {
     pub fn plot_outline(&self, plot:&mut Plot, color: &str){
         CoordinateSystem::plot_coordinate_systems(vec![&self.coordinates],plot);
 
-        let color = match &self.coordinates{ Coordinates::ABSOLUTE => "black", Coordinates::RELATIVE(c)=> c.color.as_str()};
+        //let color = match &self.coordinates{ Coordinates::ABSOLUTE => "black", Coordinates::RELATIVE(c)=> c.color.as_str()};
 
 
         let mut outline = Curve::new();
@@ -507,7 +508,7 @@ impl GRID2D {
 
 pub enum PlotPoint{
     No,
-    Given(f64,f64),
+    Given(Point),
     Random,
 }
 

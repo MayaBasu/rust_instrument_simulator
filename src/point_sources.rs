@@ -2,7 +2,8 @@ use std::fs::File;
 use std::io::Write;
 use rand::distr::{Distribution, Uniform};
 use serde::Serialize;
-use crate::grid2d::GRID2D;
+use crate::flatfieldillumination::flatfield;
+use crate::grid2d::{Location, GRID2D};
 use crate::instrument::{spatial_resolution, spectral_resolution};
 use crate::point::Point;
 
@@ -61,6 +62,26 @@ impl PointSource {
         spectrum
     }
 
+    pub fn fake_bands() -> Spectrum{
+        let luminosities = Uniform::new(0.0,1.0).expect("Could not generate random luminosities in the given range");
+        let mut rng = rand::rng();
+        Spectrum::Bands(vec![Bands::FUV(luminosities.sample(&mut rng)),Bands::NUV(luminosities.sample(&mut rng))])
+
+    }
+
+    pub fn scale(&mut self,scale:f64){
+        match &self.spectrum{
+            Spectrum::Full(l, c) => {self.spectrum = Spectrum::Full(l*scale,*c)}
+            Spectrum::Bands(bands) => {
+                self.spectrum = Spectrum::Bands(bands.iter().map(|band|
+                    match band {
+                        Bands::FUV(l) => {Bands::FUV(l*scale)}
+                        Bands::NUV(l) => {Bands::FUV(l*scale)}
+                    }).collect())
+            }
+        };
+    }
+
 
 
 }
@@ -86,10 +107,10 @@ impl SourceList {
         self
 
     }
-    pub fn new_random_point_source_field(number_of_point_sources:usize,
-                                         min_brightness: f64,
-                                         max_brightness: f64,
-                                         grid: &GRID2D,
+    pub fn random_full_spectrum_point_source_field(number_of_point_sources:usize,
+                                                   min_brightness: f64,
+                                                   max_brightness: f64,
+                                                   grid: &GRID2D,
                                         ) -> SourceList {
         //Some checks to make sure that the incoming values are as expected
         //TODO Fix these checks to work with f64 values
@@ -122,6 +143,58 @@ impl SourceList {
     }
 
      */
+
+    pub fn random_bands_point_source_field(number_of_point_sources:usize,
+                                                   min_brightness: f64,
+                                                   max_brightness: f64,
+                                                   grid: &GRID2D,
+    ) -> SourceList {
+        //Some checks to make sure that the incoming values are as expected
+        //TODO Fix these checks to work with f64 values
+        /*
+        for end_point in [min_brightness,max_brightness,min_x,max_x,min_y,max_y]{
+            assert!((0.0 <= end_point) || (end_point <= 1.0),"{}: {} must be a float between 0 and 1",stringify!(end_point),end_point );
+        }
+        assert!(min_brightness <= max_brightness,"min_brightness must be less than or equal to max_brightness");
+        assert!(min_x <= max_x,"min_x must be less than or equal to max_x");
+        assert!(min_y <= max_y,"min_y must be less than or equal to max_y");
+
+         */
+
+        let luminosities = Uniform::new(min_brightness,max_brightness).expect("Could not generate random luminosities in the given range");
+        let mut rng = rand::rng();
+        let sources: Vec<PointSource> = (0..number_of_point_sources).map(|_x|{
+            let point = grid.random();
+            let spectrum = PointSource::fake_bands();
+            PointSource { point, spectrum }
+        }).collect();
+        SourceList::new_from(sources)
+    }
+    /*
+    pub fn write_to_yaml(&self, file_name:&str,) {
+        println!("Serializing point sources");
+        let serialized_self = serde_yaml::to_string(&self).expect("Failed to YAMLify the sources");
+        let mut file = File::create(file_name).expect("Couldn't create the config file");
+        write!(file, "{}", serialized_self).expect("Failed to write YAML to config file");
+    }
+
+     */
+
+    pub fn apply_flatfield_illumination(&mut self,illumination:flatfield){
+        for source in &mut self.sources{
+            let scale = match illumination.grid.inside_or_outside(&source.point){
+                Location::Outside => {continue}
+                Location::Inside => {
+                    let (x_mod,y_mod,x_residual,y_residual) = illumination.grid.fit_grid(&source.point);
+                    illumination.data[y_mod][x_mod]
+                }
+            };
+            println!("Scle is {scale}");
+
+            source.scale(scale)
+        }
+    }
+
 
 }
 
