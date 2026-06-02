@@ -1,16 +1,18 @@
 use std::fs::File;
 use std::io::Write;
+use std::time::Instant;
 use rand::distr::{Distribution, Uniform};
 use serde::Serialize;
 use crate::flatfieldillumination::flatfield;
 use crate::grid2d::{Location, GRID2D};
 use crate::instrument::{spatial_resolution, spectral_resolution};
-use crate::point::Point;
+use crate::geometry::Point;
+use crate::units::Units;
 
 #[derive( Clone, Debug)]
 pub enum Spectrum{
-    Full(f64,[f64;spectral_resolution]),
-    Bands(Vec<Bands>),
+    Full(f64,[f64;spectral_resolution], Units),
+    Bands(Vec<Bands>, Units),
 
 }
 #[derive(Clone,Debug)]
@@ -26,15 +28,15 @@ pub struct PointSource {
 }
 
 impl PointSource {
-    pub fn new_full(point:Point, spectrum: [f64;spectral_resolution],luminosity:f64) -> PointSource {
-        let spectrum = Spectrum::Full(luminosity,spectrum);
+    pub fn new_full(point:Point, spectrum: [f64;spectral_resolution],luminosity:f64, units: Units) -> PointSource {
+        let spectrum = Spectrum::Full(luminosity,spectrum, units);
         PointSource {
             point,
             spectrum
         }
     }
-    pub fn new_fuv_nuv(point:Point,fuv:f64,nuv:f64 ) -> PointSource{
-        let spectrum = Spectrum::Bands(vec![Bands::NUV(nuv),Bands::FUV(fuv)]);
+    pub fn new_fuv_nuv(point:Point,fuv:f64,nuv:f64,units: Units ) -> PointSource{
+        let spectrum = Spectrum::Bands(vec![Bands::NUV(nuv),Bands::FUV(fuv)],units);
         PointSource{
             point,
             spectrum
@@ -62,22 +64,22 @@ impl PointSource {
         spectrum
     }
 
-    pub fn fake_bands() -> Spectrum{
+    pub fn fake_bands(units: Units) -> Spectrum{
         let luminosities = Uniform::new(0.0,1.0).expect("Could not generate random luminosities in the given range");
         let mut rng = rand::rng();
-        Spectrum::Bands(vec![Bands::FUV(luminosities.sample(&mut rng)),Bands::NUV(luminosities.sample(&mut rng))])
+        Spectrum::Bands(vec![Bands::FUV(luminosities.sample(&mut rng)),Bands::NUV(luminosities.sample(&mut rng))],units)
 
     }
 
     pub fn scale(&mut self,scale:f64){
         match &self.spectrum{
-            Spectrum::Full(l, c) => {self.spectrum = Spectrum::Full(l*scale,*c)}
-            Spectrum::Bands(bands) => {
+            Spectrum::Full(l, c,u) => {self.spectrum = Spectrum::Full(l*scale,*c,(*u).clone())}
+            Spectrum::Bands(bands,u) => {
                 self.spectrum = Spectrum::Bands(bands.iter().map(|band|
                     match band {
-                        Bands::FUV(l) => {Bands::FUV(l*scale)}
-                        Bands::NUV(l) => {Bands::FUV(l*scale)}
-                    }).collect())
+                        Bands::FUV(l) => { Bands::FUV(l * scale) }
+                        Bands::NUV(l) => { Bands::FUV(l * scale) }
+                    }).collect(),(*u).clone() )
             }
         };
     }
@@ -111,6 +113,7 @@ impl SourceList {
                                                    min_brightness: f64,
                                                    max_brightness: f64,
                                                    grid: &GRID2D,
+                                                   units: Units
                                         ) -> SourceList {
         //Some checks to make sure that the incoming values are as expected
         //TODO Fix these checks to work with f64 values
@@ -129,8 +132,9 @@ impl SourceList {
         let sources: Vec<PointSource> = (0..number_of_point_sources).map(|_x|{
             let luminosity = luminosities.sample(&mut rng);
             let point = grid.random();
+           // println!("Point is {:?}",point);
             let spectrum = PointSource::fake_spectrum();
-            PointSource::new_full(point,spectrum,luminosity)
+            PointSource::new_full(point,spectrum,luminosity,units.clone())
         }).collect();
         SourceList::new_from(sources)
     }
@@ -147,6 +151,7 @@ impl SourceList {
     pub fn random_bands_point_source_field(number_of_point_sources:usize,
                                                    min_brightness: f64,
                                                    max_brightness: f64,
+                                                    units: Units,
                                                    grid: &GRID2D,
     ) -> SourceList {
         //Some checks to make sure that the incoming values are as expected
@@ -165,7 +170,7 @@ impl SourceList {
         let mut rng = rand::rng();
         let sources: Vec<PointSource> = (0..number_of_point_sources).map(|_x|{
             let point = grid.random();
-            let spectrum = PointSource::fake_bands();
+            let spectrum = PointSource::fake_bands(units.clone());
             PointSource { point, spectrum }
         }).collect();
         SourceList::new_from(sources)
@@ -181,18 +186,20 @@ impl SourceList {
      */
 
     pub fn apply_flatfield_illumination(&mut self,illumination:flatfield){
+        let start = Instant::now();
         for source in &mut self.sources{
             let scale = match illumination.grid.inside_or_outside(&source.point){
                 Location::Outside => {continue}
                 Location::Inside => {
-                    let (x_mod,y_mod,x_residual,y_residual) = illumination.grid.fit_grid(&source.point);
+                    let (x_mod,y_mod,_x_residual,_y_residual) = illumination.grid.fit_grid(&source.point);
                     illumination.data[y_mod][x_mod]
                 }
             };
-            println!("Scle is {scale}");
+           // println!("Scle is {scale}");
 
             source.scale(scale)
         }
+        println!("Applied flatfield illumination to {:?} sources in {:?}ms",self.sources.len(),start.elapsed().as_millis())
     }
 
 

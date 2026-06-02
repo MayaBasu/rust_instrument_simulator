@@ -1,6 +1,6 @@
 use plotpy::{Curve, Legend, Plot};
 use serde::{Deserialize, Serialize};
-use crate::point::Point;
+use crate::geometry::Point;
 
 #[derive(Clone, Debug,Serialize)]
 pub enum Coordinates {

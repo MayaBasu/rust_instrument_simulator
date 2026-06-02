@@ -4,7 +4,7 @@ use crate::instrument::Instrument;
 use crate::uvex_details::{FUV_DETAILS, NUV_DETAILS, SPECTROGRAPH_DETAILS, TMA_Details, UVEX_Details};
 use crate::effects::*;
 use crate::grid2d::{GRID2D};
-use crate::point::Point;
+use crate::geometry::Point;
 
 pub fn empty_fuv() -> GRID2D {
 
@@ -18,7 +18,7 @@ pub fn empty_fuv() -> GRID2D {
     let mut grid = GRID2D::new_empty(
         (18,18), //x_num
         (0.2,0.2), //x_step_size
-        Point::new(-0.56, -0.06,Coordinates::RELATIVE(coord.clone())), //y_num
+        (-0.56, -0.06), //y_num
         0.1, //y_step_size
         Coordinates::RELATIVE(coord)
     );

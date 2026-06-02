@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uvex_fitrs::{Fits, FitsData, FitsDataArray, Hdu, HeaderValue};
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::grid2d::GRID2D;
-use crate::point::Point;
+use crate::geometry::Point;
 use crate::point_sources::{PointSource, SourceList};
 
 #[derive(Debug,Clone,Serialize)]

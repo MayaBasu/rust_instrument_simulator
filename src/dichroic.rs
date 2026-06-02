@@ -32,9 +32,9 @@ pub fn apply_dichroic(source_list: SourceList) -> SourceList{
     let mut algamated_sources = Vec::with_capacity(source_list.sources.len());
 
     for point_source in source_list.sources{
-        let (luminosity, spectrum) = match  point_source.spectrum{
-            Spectrum::Full(luminosity, spectrum) => {(luminosity, spectrum)}
-            Spectrum::Bands(_) => {panic!("This shoudl get the full thing :(")}
+        let (luminosity, spectrum,u) = match  point_source.spectrum{
+            Spectrum::Full(luminosity, spectrum,u) => {(luminosity, spectrum,u)}
+            Spectrum::Bands(_,_) => {panic!("This shoudl get the full thing :(")}
         };
         let fuv_spectrum = spectrum.clone();
         let nuv_spectrum = spectrum;
@@ -49,7 +49,7 @@ pub fn apply_dichroic(source_list: SourceList) -> SourceList{
 
         let new_source = PointSource::new(
             point_source.point.clone(),
-            Spectrum::Bands(vec![Bands::NUV(nuv_band),Bands::FUV(fuv_band)]));
+            Spectrum::Bands(vec![Bands::NUV(nuv_band),Bands::FUV(fuv_band)],u));
         algamated_sources.push(new_source);
 
         }

@@ -1,3 +1,4 @@
+use std::ops::{Add, Mul};
 use serde::Serialize;
 use crate::coordinate_system::{Coordinates};
 
@@ -7,12 +8,7 @@ pub struct Point{
     pub(crate) y: f64,
     pub(crate) coordinates: Coordinates
 }
-#[derive(Clone, Debug,Serialize)]
-pub struct Length{
-    pub l: f64,
-    coordinates: Coordinates,
-    
-}
+
 impl Point{
     pub fn new(x:f64,y:f64,coordinates: Coordinates) -> Point{
         Point{x,y,coordinates}
@@ -40,5 +36,19 @@ impl Point{
     }
     pub fn values(&self)-> (f64,f64){
         (self.x,self.y)
+    }
+}
+
+
+impl Add for Point{
+    type Output = Point;
+    fn add(self, rhs: Point) -> Self::Output {
+
+        Point{
+            x: self.to_absolute().x + rhs.to_absolute().x,
+            y: self.to_absolute().y + rhs.to_absolute().y,
+            coordinates:Coordinates::ABSOLUTE
+
+        }
     }
 }

@@ -1,7 +1,7 @@
 use std::fs;
 use crate::coordinate_system::CoordinateSystem;
 use crate::grid2d::{Corners, GRID2D};
-use crate::point::Point;
+use crate::geometry::Point;
 use crate::psf::{DataFile, PSF, Load};
 
 
@@ -79,7 +79,7 @@ impl PsfGrid{
 
     pub fn interpolated_psf(&self, point:&Point) -> Vec<Vec<f32>>{
         //println!("Converting from {:?}", point);
-        
+
       //  println!("To {:?}",(x,y));
 
         let ((Q12, Q22, Q21, Q11),(c11,c12,c21,c22),normalization) = self.interpolation_coefficients(point.clone());
@@ -118,8 +118,8 @@ impl PsfGrid{
         match self.grid.find_corners(point.clone()){
             Corners::Four(Q12, Q22, Q21, Q11) => { // using the wikipedia convention https://en.wikipedia.org/wiki/Bilinear_interpolation
 
-                let Q11point = self.grid.relative_location(Q11);
-                let Q22point = self.grid.relative_location(Q22);
+                let Q11point = self.grid.locate(Q11);
+                let Q22point = self.grid.locate(Q22);
 
 
                 let (x1,y1) = (Q11point.x,Q11point.y);

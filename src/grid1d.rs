@@ -2,7 +2,7 @@ use plotpy::{Curve, Plot, Text};
 use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use rand::RngExt;
 use crate::grid2d::PlotPoint;
-use crate::point::Point;
+use crate::geometry::Point;
 use crate::psf::PSF;
 
 

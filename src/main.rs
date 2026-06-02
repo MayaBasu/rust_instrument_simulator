@@ -23,10 +23,10 @@ use crate::frequency_response_files::load;
 use crate::grid1d::GRID1D;
 use crate::grid2d::{GRID2D, PlotPoint};
 use crate::plotting::{display, run};
-use crate::point::Point;
+use crate::geometry::Point;
 use crate::psf_grid::PsfGrid;
 use crate::point_sources::{PointSource, SourceList};
-
+use crate::units::Units;
 use crate::uvex_details::UVEX_Details;
 mod objects;
 mod uvex;
@@ -44,7 +44,7 @@ mod psf;
 mod grid2d;
 mod coordinate_system;
 mod psf_grid;
-mod point;
+mod geometry;
 mod detector;
 mod datafile_reader;
 mod dichroic;
@@ -56,6 +56,7 @@ mod frequency_response_files;
 mod plotting;
 mod binom;
 mod flatfieldillumination;
+mod units;
 
 fn main() {
 
@@ -128,19 +129,23 @@ fn main() {
         let mut grid = uvex::empty_fuv();
         let mut plot = plotpy::Plot::new();
         grid.plot_points(&mut plot, PlotPoint::No);
-       // grid.plot_outline(&mut plot, "yellow");
+        grid.plot_outline(&mut plot, "yellow");
         let uvex_detector_array = &mut detector::DetectorArray::uvex_detector_array(0.02,0.02);
         let illumination = load_flatfield_illumination(4000*3);
-        println!("illuminatin: {:?}",illumination.grid);
+        //println!("illuminatin: {:?}",illumination.grid);
        // illum_grid.plot_outline(&mut plot, "green");
-       // for detector in &uvex_detector_array.detectors{
-         //   detector.grid.plot_outline(&mut plot, "blue");
-        //}
-
-       // plot.show("ksenf").expect("hHHHHHH");
-
-
+        for detector in &uvex_detector_array.detectors{
+                detector.grid.plot_outline(&mut plot, "purple");
+        }
         let mut psf_grid = PsfGrid::new(grid);
+
+        psf_grid.grid.plot_outline(&mut plot, "orange");
+
+
+     //   plot.show("ksenf").expect("hHHHHHH");
+
+
+
         psf_grid.load_data_frames(fuv_path, ("XFLD", "YFLD"), (64, 64), (6.4, 6.4));
         psf_grid.validate();
 
@@ -160,17 +165,28 @@ fn main() {
         let mut detector = uvex_detector_array.detectors[0].clone();
 
         let start = Instant::now();
-        let mut source_list = SourceList::random_full_spectrum_point_source_field(10000,0.0,1000.0,&psf_grid.grid);
-       // let source_list = flatfieldillumination::apply_flatfield_illumination(source_list);
-        let flat = load_flatfield_illumination(4096*3);
-        //source_list.apply_flatfield_illumination(flat);
+        let mut source_list = SourceList::random_full_spectrum_point_source_field(1000000,500.0,1000.0,&psf_grid.grid,Units::Flux);
         let duration = start.elapsed();
-        //println!("{:?}",source_list);
-        //println!("{:?}",source_list.sources[0].spectrum);
         println!("Generated {:?} fake point sources in {:?}", source_list.sources.len(), duration.as_millis());
 
 
+        // let source_list = flatfieldillumination::apply_flatfield_illumination(source_list);
+        let flat = load_flatfield_illumination(4096*3);
+        source_list.apply_flatfield_illumination(flat);
+
+        //println!("{:?}",source_list);
+        //println!("{:?}",source_list.sources[0].spectrum);
+
+
         let new_source_list = dichroic::apply_dichroic(source_list);
+        /*
+        for point in &new_source_list.sources{
+                println!("{:?}",point);
+                println!("{:?}",detector.grid.inside_or_outside(&point.point))
+        }
+
+         */
+
 
         detector.show_read_out(new_source_list,psf_grid);
 

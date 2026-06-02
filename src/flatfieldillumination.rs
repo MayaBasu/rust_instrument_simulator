@@ -7,7 +7,7 @@ use crate::coordinate_system::{CoordinateSystem, Coordinates};
 use crate::coordinate_system::Coordinates::ABSOLUTE;
 use crate::flatfieldillumination;
 use crate::grid2d::GRID2D;
-use crate::point::Point;
+use crate::geometry::Point;
 use crate::point_sources::{Bands, PointSource, SourceList, Spectrum};
 
 
@@ -70,7 +70,7 @@ pub fn flatfield_grid()->GRID2D{
         "magenta".to_string());
 
     GRID2D::new_empty(
-        (num_pixels,num_pixels),(1.0,1.0), center_absolute,0.01,Coordinates::RELATIVE(coordinate_system))
+        (num_pixels,num_pixels),(1.0,1.0), (0.0,0.0),0.01,Coordinates::RELATIVE(coordinate_system))
 
 }
 
